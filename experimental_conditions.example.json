@@ -1,0 +1,142 @@
+[
+    {
+        "_comment": "EXAMPLE CONDITION - Generic template for research studies",
+        "_note_about_system_prompt": "The keys under 'system_prompt' (like 'role', 'behavior') are ARBITRARY - you can name them anything! They're just for organization. All values get concatenated together.",
+        "id": "control",
+        "name": "Control - Standard Assistant",
+        "description": "Baseline condition with standard AI assistant behavior",
+        "enabled": true,
+        "bot_name": "Assistant",
+        "bot_icon": "",
+        "bot_styles": {
+            "primary_color": "#4A90E2",
+            "background_color": "#F5F5F5",
+            "text_color": "#333333",
+            "show_header": true
+        },
+        "model_overrides": {
+            "temperature": 0.7
+        },
+        "system_prompt": {
+            "role": "You are a helpful AI assistant. Be friendly and concise in your responses.",
+            "behavior": "Answer questions naturally and conversationally. Keep responses brief unless the user asks for more detail."
+        }
+    },
+    {
+        "id": "formal",
+        "name": "Formal Assistant",
+        "description": "Professional, formal tone with technical language",
+        "enabled": true,
+        "bot_name": "Professional Assistant",
+        "bot_icon": "",
+        "bot_styles": {
+            "primary_color": "#2C3E50",
+            "background_color": "#ECF0F1",
+            "text_color": "#2C3E50",
+            "show_header": true
+        },
+        "model_overrides": {
+            "temperature": 0.5
+        },
+        "system_prompt": {
+            "role": "You are a professional AI assistant. Maintain a formal, business-appropriate tone.",
+            "behavior": "Use precise language and technical terminology when appropriate. Structure responses clearly with proper formatting."
+        }
+    },
+    {
+        "id": "casual",
+        "name": "Casual Assistant",
+        "description": "Friendly, conversational tone with personality",
+        "enabled": true,
+        "bot_name": "Buddy",
+        "bot_icon": "👋",
+        "bot_styles": {
+            "primary_color": "#E67E22",
+            "background_color": "#FFF8F0",
+            "text_color": "#333333",
+            "show_header": true
+        },
+        "model_overrides": {
+            "temperature": 0.9
+        },
+        "system_prompt": {
+            "role": "You are a friendly, casual AI assistant. Use a warm, conversational tone.",
+            "behavior": "Feel free to use casual language and show personality. Be enthusiastic and supportive."
+        }
+    },
+    {
+        "id": "icon_visual",
+        "name": "Visual Identity - Robot Icon",
+        "description": "Uses robot icon instead of text name",
+        "enabled": true,
+        "bot_name": "",
+        "bot_icon": "/static/images/chip.png",
+        "bot_styles": {
+            "primary_color": "#9B59B6",
+            "background_color": "#F4F4F4",
+            "text_color": "#333333",
+            "show_header": false
+        },
+        "system_prompt": {
+            "role": "You are a helpful AI assistant. Be clear and direct.",
+            "behavior": "Provide straightforward answers without unnecessary elaboration."
+        }
+    },
+    {
+        "id": "minimal",
+        "name": "Minimal - No Identity",
+        "description": "No bot name or icon, purely functional",
+        "enabled": true,
+        "bot_name": "",
+        "bot_icon": "",
+        "bot_styles": {
+            "primary_color": "#95A5A6",
+            "background_color": "#FFFFFF",
+            "text_color": "#333333",
+            "show_header": false
+        },
+        "system_prompt": {
+            "role": "You are a helpful assistant. Focus on answering questions efficiently.",
+            "behavior": "Be direct and concise. Avoid unnecessary pleasantries or self-reference."
+        }
+    },
+    {
+        "id": "experimental_disabled",
+        "name": "Experimental Condition (Disabled)",
+        "description": "Example of a disabled condition for testing",
+        "enabled": false,
+        "bot_name": "Experimental Bot",
+        "bot_icon": "🧪",
+        "bot_styles": {
+            "primary_color": "#E74C3C",
+            "background_color": "#FADBD8",
+            "text_color": "#333333",
+            "show_header": true
+        },
+        "system_prompt": {
+            "role": "This is an experimental condition that is currently disabled.",
+            "behavior": "This won't be loaded unless enabled is set to true."
+        }
+    },
+    {
+        "_comment": "This condition demonstrates that system_prompt keys are arbitrary",
+        "id": "custom_keys_example",
+        "name": "Example - Custom System Prompt Keys",
+        "description": "Shows that you can use ANY key names in system_prompt - they're just for organization",
+        "enabled": true,
+        "bot_name": "Custom Bot",
+        "bot_icon": "⚙️",
+        "bot_styles": {
+            "primary_color": "#16A085",
+            "background_color": "#F0F8F8",
+            "text_color": "#333333",
+            "show_header": true
+        },
+        "system_prompt": {
+            "my_custom_section_name": "You are a helpful assistant.",
+            "another_section_i_made_up": "Be clear and concise.",
+            "whatever_i_want_to_call_this": "These key names are arbitrary - I chose them for my own organizational purposes.",
+            "final_note": "All these values get joined together with newlines to form the complete system prompt."
+        }
+    }
+]

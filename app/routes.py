@@ -1,0 +1,319 @@
+"""
+Routes and view functions for the chat application.
+"""
+
+import typing
+import re
+import secrets
+from flask import Blueprint, render_template, request, jsonify
+
+from app import db, get_azure_client, limiter
+from app.models import Participant, Message
+from bot import get_chat_response, load_experiment_config
+
+main_bp = Blueprint('main', __name__)
+
+# Constants for validation
+VALID_CONDITION_RANGE = (0, 8)  # Valid condition indices: 0-8 inclusive
+MAX_MESSAGE_LENGTH = 2000        # Maximum characters per message (~500 tokens)
+
+
+def validate_participant_id(participant_id: str) -> bool:
+    """
+    Validate participant ID format.
+    
+    Accepts:
+    - Alphanumeric characters (A-Z, a-z, 0-9)
+    - Hyphens (-)
+    - Underscores (_)
+    - Length: 1-255 characters
+    
+    Rejects:
+    - Special characters
+    - Path traversal attempts
+    - Whitespace-only IDs
+    - Empty strings
+    - Too long IDs
+    
+    Args:
+        participant_id: The participant ID to validate
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    if not participant_id or not participant_id.strip():
+        return False
+    
+    # Allow alphanumeric, hyphens, underscores only, 1-255 characters
+    # Hyphen at start of character class to avoid range interpretation
+    return bool(re.match(r'^[-a-zA-Z0-9_]{1,255}$', participant_id))
+
+
+def validate_condition_index(condition_index: typing.Optional[int]) -> bool:
+    """
+    Validate condition index is within valid range.
+    
+    Args:
+        condition_index: The condition index to validate
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    if condition_index is None:
+        return False
+    
+    min_condition, max_condition = VALID_CONDITION_RANGE
+    return min_condition <= condition_index <= max_condition
+
+
+def get_or_create_participant(participant_id: str, condition_index: int, config: typing.Dict[str, typing.Any]) -> Participant:
+    """
+    Get existing participant or create new one.
+    
+    Args:
+        participant_id: Unique identifier for participant
+        condition_index: Index of experimental condition
+        config: Loaded experimental configuration (from load_experiment_config)
+    
+    Returns:
+        Participant object (with session_token field populated)
+    """
+    participant = Participant.query.get(participant_id)
+    
+    if participant is None:
+        # Generate cryptographically secure random token
+        session_token = secrets.token_urlsafe(32)
+        
+        participant = Participant(
+            participant_id=participant_id,
+            session_token=session_token,
+            condition_index=condition_index,
+            condition_id=config['condition_id'],
+            condition_name=config['condition_name']
+        )
+        db.session.add(participant)
+        
+        system_message = Message(
+            participant_id=participant_id,
+            role='system',
+            content=config['system_prompt']
+        )
+        db.session.add(system_message)
+        
+        db.session.commit()
+    
+    return participant
+
+
+def get_conversation_history(participant_id: str) -> typing.List[typing.Dict[str, str]]:
+    """Retrieve conversation history for a participant."""
+    messages = Message.query.filter_by(participant_id=participant_id).order_by(Message.timestamp).all()
+    return [{"role": msg.role, "content": msg.content} for msg in messages]
+
+
+# ============================================================================
+# Health Check Endpoints
+# ============================================================================
+
+@main_bp.route('/health')
+def health():
+    """Health check endpoint for Docker and Kubernetes."""
+    return jsonify({'status': 'healthy'}), 200
+
+
+@main_bp.route('/ready')
+def ready():
+    """Readiness check endpoint."""
+    try:
+        # Check database connection
+        db.session.execute(db.text('SELECT 1'))
+        return jsonify({'status': 'ready'}), 200
+    except Exception as e:
+        return jsonify({'status': 'not ready', 'error': str(e)}), 503
+
+
+# ============================================================================
+# Application Routes
+# ============================================================================
+
+@main_bp.route('/')
+def index():
+    """Main test page with demo controls."""
+    return render_template('test_interface.html')
+
+
+@main_bp.route('/gui')
+def chat_interface():
+    """Chat interface - expects participant_id and condition as URL params."""
+    participant_id = request.args.get('participant_id')
+    condition_index = request.args.get('condition', type=int)
+    
+    # Validate participant_id
+    if not participant_id:
+        return jsonify({'error': 'participant_id parameter is required'}), 400
+    
+    if not validate_participant_id(participant_id):
+        return jsonify({
+            'error': 'Invalid participant_id format. Use letters, numbers, hyphens, and underscores only (max 255 characters).'
+        }), 400
+    
+    # Validate condition_index
+    if condition_index is None:
+        return jsonify({'error': 'condition parameter is required'}), 400
+    
+    if not validate_condition_index(condition_index):
+        min_cond, max_cond = VALID_CONDITION_RANGE
+        return jsonify({
+            'error': f'Invalid condition. Must be between {min_cond} and {max_cond}.'
+        }), 400
+    
+    try:
+        # Load config once
+        config = load_experiment_config(condition_index)
+        
+        # Pass config to participant creation
+        participant = get_or_create_participant(participant_id, condition_index, config)
+        
+        return render_template('chat.html', 
+                             participant_id=participant_id,
+                             session_token=participant.session_token,
+                             config=config)
+    
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/api/send_message', methods=['POST'])
+@limiter.limit("30 per minute")  # Prevent spam/abuse
+@limiter.limit("500 per day")     # Daily cap for safety
+def send_message():
+    """Handle incoming user messages and return assistant response."""
+    try:
+        data = request.get_json()
+        participant_id = data.get('participant_id')
+        session_token = data.get('session_token')
+        condition_index = data.get('condition_index')
+        user_message = data.get('message', '').strip()
+        
+        # Validate participant_id
+        if not participant_id:
+            return jsonify({'error': 'participant_id is required'}), 400
+        
+        if not validate_participant_id(participant_id):
+            return jsonify({
+                'error': 'Invalid participant_id format. Use letters, numbers, hyphens, and underscores only.'
+            }), 400
+        
+        # Validate session_token
+        if not session_token:
+            return jsonify({'error': 'session_token is required'}), 400
+        
+        # Authenticate: Verify session token matches participant
+        participant = Participant.query.get(participant_id)
+        if not participant or participant.session_token != session_token:
+            return jsonify({'error': 'Invalid session token'}), 403
+        
+        # Validate condition_index
+        if condition_index is None:
+            return jsonify({'error': 'condition_index is required'}), 400
+        
+        if not validate_condition_index(condition_index):
+            min_cond, max_cond = VALID_CONDITION_RANGE
+            return jsonify({
+                'error': f'Invalid condition_index. Must be between {min_cond} and {max_cond}.'
+            }), 400
+        
+        # Validate message
+        if not user_message:
+            return jsonify({'error': 'Message cannot be empty'}), 400
+        
+        # Check message length to prevent abuse and excessive costs
+        if len(user_message) > MAX_MESSAGE_LENGTH:
+            return jsonify({
+                'error': f'Message too long. Maximum {MAX_MESSAGE_LENGTH} characters allowed.'
+            }), 400
+        
+        config = load_experiment_config(condition_index)
+        
+        # Save user message immediately for research purposes
+        # (preserves what user typed even if LLM fails to respond)
+        new_user_msg = Message(
+            participant_id=participant_id,
+            role='user',
+            content=user_message
+        )
+        db.session.add(new_user_msg)
+        db.session.commit()
+        
+        conversation = get_conversation_history(participant_id)
+        
+        client = get_azure_client()
+        assistant_message = get_chat_response(
+            client,
+            conversation,
+            deployment=config["deployment"],
+            temperature=config["temperature"],
+            max_completion_tokens=config["max_completion_tokens"],
+            max_retries=config["max_retries"],
+            retry_delay=config["retry_delay"]
+        )
+        
+        if assistant_message is None:
+            # Keep user message in database for research analysis
+            # This helps track what participants were trying when system failed
+            return jsonify({'error': 'Failed to get response from assistant'}), 500
+        
+        new_assistant_msg = Message(
+            participant_id=participant_id,
+            role='assistant',
+            content=assistant_message
+        )
+        db.session.add(new_assistant_msg)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': assistant_message,
+            'timestamp': new_assistant_msg.timestamp.isoformat()
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/api/get_history', methods=['GET'])
+def get_history():
+    """Retrieve conversation history for current participant."""
+    try:
+        participant_id = request.args.get('participant_id')
+        session_token = request.args.get('session_token')
+        
+        if not participant_id:
+            return jsonify({'error': 'participant_id is required'}), 400
+        
+        if not validate_participant_id(participant_id):
+            return jsonify({
+                'error': 'Invalid participant_id format. Use letters, numbers, hyphens, and underscores only.'
+            }), 400
+        
+        # Validate session_token
+        if not session_token:
+            return jsonify({'error': 'session_token is required'}), 400
+        
+        # Authenticate: Verify session token matches participant
+        participant = Participant.query.get(participant_id)
+        if not participant or participant.session_token != session_token:
+            return jsonify({'error': 'Invalid session token'}), 403
+        
+        messages = Message.query.filter_by(participant_id=participant_id).order_by(Message.timestamp).all()
+        display_messages = [msg.to_dict() for msg in messages if msg.role != 'system']
+        
+        return jsonify({
+            'success': True,
+            'messages': display_messages
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

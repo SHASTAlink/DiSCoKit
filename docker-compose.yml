@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  chat-app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount data directory for persistence
+      - ./data:/app/data
+      # Mount logs directory
+      - ./logs:/app/logs
+      # Mount static images (if you update them)
+      - ./app/static/images:/app/static/images
+    environment:
+      # Azure OpenAI Configuration
+      - MODEL_ENDPOINT=${MODEL_ENDPOINT}
+      - MODEL_DEPLOYMENT=${MODEL_DEPLOYMENT}
+      - MODEL_API_VERSION=${MODEL_API_VERSION}
+      - MODEL_SUBSCRIPTION_KEY=${MODEL_SUBSCRIPTION_KEY}
+      
+      # Model Parameters
+      - MODEL_TEMPERATURE=${MODEL_TEMPERATURE:-1.0}
+      - MODEL_MAX_COMPLETION_TOKENS=${MODEL_MAX_COMPLETION_TOKENS:-2500}
+      - MODEL_MAX_RETRIES=${MODEL_MAX_RETRIES:-5}
+      - MODEL_RETRY_DELAY=${MODEL_RETRY_DELAY:-2.0}
+      
+      # Flask Configuration
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-dev-secret-change-in-production}
+
+      # host lockdown
+      # - ALLOWED_FRAME_ANCESTORS=${ALLOWED_FRAME_ANCESTORS}
+
+      # Database - use volume mount
+      - DATABASE_URL=sqlite:///data/chat_experiment.db
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

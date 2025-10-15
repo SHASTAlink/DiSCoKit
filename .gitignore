@@ -1,0 +1,120 @@
+# ============================================================================
+# PROJECT-SPECIFIC IGNORES (Study-Specific Files)
+# fpr when ultimately creating public shade framework repo
+# ============================================================================
+# These files contain your research design and participant data
+# Keep private until published
+
+# Study documentation (your research design)
+#study_docs/
+
+# Actual experimental conditions (your 9 poetry conditions)
+#experimental_conditions.json
+
+# Experimental Test Pages
+#app/templates/test_interface.html
+
+
+# ============================================================================
+# SENSITIVE DATA (Participant Information & Secrets)
+# ============================================================================
+# CRITICAL: Never commit these files - contain participant data or secrets
+
+# Database files (participant conversations)
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Export files (participant data)
+export_*.json
+conversations_*.csv
+messages_*.csv
+*.csv
+*.json
+
+# Environment files (API keys and secrets)
+.env
+.flaskenv
+
+# Log files (may contain participant IDs or errors)
+logs/
+*.log
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================================================
+# VIRTUAL ENVIRONMENTS
+# ============================================================================
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================================================
+# TESTING
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ============================================================================
+# IDE & EDITORS
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+.DS_Store
+Thumbs.db
+
+# ============================================================================
+# DOCKER
+# ============================================================================
+*.pid
+
+# ============================================================================
+# BACKUP FILES
+# ============================================================================
+*.bak
+*.backup
+
+# ============================================================================
+# ALLOW (Explicitly Include These)
+# ============================================================================
+# These files are safe to commit - they're templates without secrets
+
+!experimental_conditions.example.json
+!.env.example
+!README.md
+!docs/

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Origin Embedding Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 4px;
+        }
+
+        .info-box h2 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+
+        .info-box code {
+            background-color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .controls label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .controls input,
+        .controls select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .controls button {
+            margin-top: 15px;
+            padding: 12px 24px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .controls button:hover {
+            background-color: #1976d2;
+        }
+
+        .iframe-wrapper {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        iframe {
+            width: 100%;
+            height: 700px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Cross-Origin Iframe Embedding Test</h1>
+        <p>Simulates embedding the chat interface from a different domain</p>
+    </div>
+
+    <div class="info-box">
+        <h2>📋 About This Page</h2>
+        <p>This page tests <strong>cross-origin iframe embedding</strong> - simulating how the chat interface will work when embedded in survey platforms like Qualtrics.</p>
+        
+        <p><strong>Purpose:</strong></p>
+        <ul>
+            <li>Test that iframe embedding works correctly</li>
+            <li>Verify session tokens work across origins</li>
+            <li>Test CSP frame-ancestors restrictions (if configured)</li>
+            <li>Debug cross-origin issues during development</li>
+        </ul>
+
+        <p><strong>Note:</strong> When you set <code>ALLOWED_FRAME_ANCESTORS</code> in your .env file, this page might be blocked unless you add <code>file://</code> or <code>localhost</code> to the allowed list.</p>
+    </div>
+
+    <div class="controls">
+        <h3>🔧 Configuration</h3>
+        
+        <label>
+            Chat Application URL:
+            <input type="text" id="app-url" value="http://localhost:5000" placeholder="http://localhost:5000">
+        </label>
+        <small style="color: #666; display: block; margin-top: 5px;">
+            The base URL where your Flask application is running (no trailing slash)
+        </small>
+
+        <label style="margin-top: 15px;">
+            Participant ID:
+            <input type="text" id="participant-id" value="" placeholder="Auto-generated" readonly>
+        </label>
+
+        <label style="margin-top: 15px;">
+            Condition Index:
+            <select id="condition-select">
+                <option value="0">Condition 0</option>
+                <option value="1">Condition 1</option>
+                <option value="2">Condition 2</option>
+                <option value="3">Condition 3</option>
+                <option value="4">Condition 4</option>
+                <option value="5">Condition 5</option>
+                <option value="6">Condition 6</option>
+                <option value="7">Condition 7</option>
+                <option value="8">Condition 8</option>
+            </select>
+        </label>
+        <small style="color: #666; display: block; margin-top: 5px;">
+            Select which experimental condition to test. Condition indices correspond to your <code>experimental_conditions.json</code> file.
+        </small>
+
+        <button onclick="loadChat()">Load Chat Interface</button>
+        
+        <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 13px; color: #666;">
+            <strong>Testing Cross-Origin:</strong> Open this file directly (file:// protocol) to simulate embedding from a different domain. If ALLOWED_FRAME_ANCESTORS is configured, you may see CSP blocking errors - this is expected behavior.
+        </div>
+    </div>
+
+    <div class="iframe-wrapper">
+        <iframe id="chat-iframe" src=""></iframe>
+    </div>
+
+    <div class="footer">
+        <p>Flask Experimental Chat Framework - Cross-Origin Embedding Test</p>
+        <p>For production deployment, participants access the chat through your survey platform integration (e.g., Qualtrics).</p>
+    </div>
+
+    <script>
+        // Generate unique participant ID for testing
+        function generateTestParticipantId() {
+            const timestamp = Math.floor(Date.now() / 1000);
+            return `TEST_EMBED_${timestamp}`;
+        }
+
+        // Initialize on page load
+        function initializePage() {
+            document.getElementById('participant-id').value = generateTestParticipantId();
+        }
+
+        // Load chat interface in iframe
+        function loadChat() {
+            const appUrl = document.getElementById('app-url').value.trim();
+            const participantId = document.getElementById('participant-id').value;
+            const condition = document.getElementById('condition-select').value;
+
+            if (!appUrl) {
+                alert('Please enter the chat application URL');
+                return;
+            }
+
+            // Remove trailing slash if present
+            const baseUrl = appUrl.replace(/\/$/, '');
+
+            // Build iframe URL
+            const iframeUrl = `${baseUrl}/gui?participant_id=${encodeURIComponent(participantId)}&condition=${encodeURIComponent(condition)}`;
+
+            // Load iframe
+            const iframe = document.getElementById('chat-iframe');
+            iframe.src = iframeUrl;
+
+            console.log('Loading chat interface:', {
+                appUrl: baseUrl,
+                participantId: participantId,
+                condition: condition,
+                fullUrl: iframeUrl
+            });
+
+            // Log when iframe loads
+            iframe.onload = function() {
+                console.log('✓ Iframe loaded successfully');
+            };
+
+            // Log if iframe fails to load
+            iframe.onerror = function() {
+                console.error('✗ Iframe failed to load - check console for CSP or CORS errors');
+            };
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initializePage);
+    </script>
+</body>
+</html>

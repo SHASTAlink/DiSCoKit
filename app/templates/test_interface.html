@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poetry Writing Experiment - Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .instructions h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .instructions h3 {
+            margin-top: 20px;
+            color: #34495e;
+        }
+
+        .instructions ol {
+            line-height: 1.8;
+        }
+
+        .instructions ul {
+            line-height: 1.6;
+        }
+
+        .chat-wrapper {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        iframe {
+            width: 100%;
+            height: 700px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .demo-controls {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .demo-controls h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+
+        .demo-controls select,
+        .demo-controls input {
+            padding: 8px 12px;
+            margin: 5px 10px 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .demo-controls input[readonly] {
+            background-color: #f0f0f0;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .demo-controls button {
+            padding: 8px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .demo-controls button:hover {
+            background-color: #0056b3;
+        }
+
+        .demo-note {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Poetry Writing Experiment - Test Page</h1>
+        <p>Testing interface for experimental conditions</p>
+    </div>
+
+    <div class="instructions">
+        <h2>Instructions</h2>
+        <ol>
+            <li>You will interact with an AI assistant who helps write poetry.</li>
+            <li>Try asking the assistant to write a poem with a specific rhyme scheme (e.g., "Write an ABAB poem about cats").</li>
+            <li>Evaluate whether the poem matches your request.</li>
+            <li>If you notice any issues, feel free to provide feedback.</li>
+            <li>Continue the conversation naturally for 3-5 exchanges.</li>
+        </ol>
+        
+        <h3>Common Rhyme Schemes to Try:</h3>
+        <ul>
+            <li><strong>ABAB</strong> - Lines 1 and 3 rhyme, lines 2 and 4 rhyme</li>
+            <li><strong>AABB</strong> - Lines 1 and 2 rhyme, lines 3 and 4 rhyme</li>
+            <li><strong>ABCB</strong> - Only lines 2 and 4 rhyme</li>
+        </ul>
+
+        <h3>Experimental Conditions:</h3>
+        
+        <h3>Experimental Conditions:</h3>
+        
+        <p><strong>Study 2a - Names:</strong> Tests how bot names affect user perceptions</p>
+        <ul>
+            <li>Condition 0: JACKIE (human-like name)</li>
+            <li>Condition 1: J4-K13 (alphanumeric identifier)</li>
+            <li>Condition 2: No name (anonymous)</li>
+        </ul>
+
+        <p><strong>Study 2b - Icons:</strong> Tests how visual representation affects perceptions</p>
+        <ul>
+            <li>Condition 3: Neural net/chip icon</li>
+            <li>Condition 4: Brain icon</li>
+            <li>Condition 5: No icon</li>
+        </ul>
+
+        <p><strong>Study 2c - Self-Reference:</strong> Tests how language style affects perceptions</p>
+        <ul>
+            <li>Condition 6: First person ("I", "me", "my")</li>
+            <li>Condition 7: Third person ("this AI", "this system")</li>
+            <li>Condition 8: No self-reference (direct responses)</li>
+        </ul>
+
+        <p><strong>Note:</strong> All conditions now use a 5-step guided workflow and produce poems with rhyme errors at the final step.</p>
+    </div>
+
+    <div class="demo-controls">
+        <h3>🔧 Demo Controls</h3>
+        <form id="demo-form">
+            <label>Participant ID: 
+                <input type="text" id="participant-id" value="" placeholder="Auto-generated" readonly>
+            </label>
+            <label>Condition: 
+                <select id="condition-select">
+                    <optgroup label="Study 2a - Names">
+                        <option value="0">0 - JACKIE</option>
+                        <option value="1">1 - J4-K13</option>
+                        <option value="2">2 - No Name</option>
+                    </optgroup>
+                    <optgroup label="Study 2b - Icons">
+                        <option value="3">3 - Chip Icon</option>
+                        <option value="4">4 - Brain Icon</option>
+                        <option value="5">5 - No Icon</option>
+                    </optgroup>
+                    <optgroup label="Study 2c - Self-Reference">
+                        <option value="6">6 - First Person</option>
+                        <option value="7">7 - Third Person</option>
+                        <option value="8">8 - No Self-Reference</option>
+                    </optgroup>
+                </select>
+            </label>
+            <button type="submit">Load Chat</button>
+        </form>
+        <div class="demo-note">
+            <strong>Note:</strong> Participant ID auto-generates with timestamp for unique testing. You can edit it if needed.
+        </div>
+    </div>
+
+    <div class="chat-wrapper">
+        <iframe id="chat-iframe" src=""></iframe>
+    </div>
+
+    <div class="footer">
+        <p>Flask Test Interface - For development and testing</p>
+        <p>For Qualtrics integration, see: <a href="/static/example_host_page.html">example_host_page.html</a></p>
+    </div>
+
+    <script>
+        // Generate unique participant ID for testing
+        function generateTestParticipantId() {
+            const timestamp = Math.floor(Date.now() / 1000);
+            return `DEMO_P_${timestamp}`;
+        }
+
+        function getParticipantId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('pid') || generateTestParticipantId();
+        }
+
+        function getCondition() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('condition') || '0';
+        }
+
+        function initializeChat() {
+            // Populate form with defaults but don't load iframe yet
+            const condition = getCondition();
+            document.getElementById('participant-id').value = generateTestParticipantId();
+            document.getElementById('condition-select').value = condition;
+        }
+
+        function updateIframe() {
+            // Generate fresh participant ID for new test
+            const newParticipantId = generateTestParticipantId();
+            document.getElementById('participant-id').value = newParticipantId;
+            
+            const condition = document.getElementById('condition-select').value;
+            
+            // Load the iframe
+            const iframe = document.getElementById('chat-iframe');
+            const url = `/gui?participant_id=${encodeURIComponent(newParticipantId)}&condition=${encodeURIComponent(condition)}`;
+            iframe.src = url;
+            
+            console.log('Loading chat:', { participantId: newParticipantId, condition, url });
+        }
+
+        function updateIframeWithParams(participantId, condition) {
+            const iframe = document.getElementById('chat-iframe');
+            const url = `/gui?participant_id=${encodeURIComponent(participantId)}&condition=${encodeURIComponent(condition)}`;
+            iframe.src = url;
+            
+            console.log('Loading chat:', { participantId, condition, url });
+            
+            iframe.onload = function() {
+                console.log('Iframe loaded');
+            };
+        }
+
+        // Prevent the demo form from submitting
+        document.getElementById('demo-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Demo form submit prevented');
+            updateIframe();
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', initializeChat);
+    </script>
+</body>
+</html>

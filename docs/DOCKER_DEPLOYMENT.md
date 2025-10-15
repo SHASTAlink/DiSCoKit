@@ -1,0 +1,523 @@
+# Docker Deployment Guide
+
+This guide covers containerizing and deploying the Flask chat application using Docker.
+
+---
+
+## Prerequisites
+
+- Docker installed (version 20.10+)
+- Docker Compose installed (version 2.0+)
+- `.env` file configured with Azure OpenAI credentials
+
+---
+
+## Quick Start
+
+```bash
+# 1. Build the image
+docker build -t chat-experiment:latest .
+
+# 2. Run the container
+docker run -d \
+  --name chat-experiment \
+  -p 5000:5000 \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  chat-experiment:latest
+
+# 3. Check it's running
+docker ps
+curl http://localhost:5000/health
+
+# 4. View logs
+docker logs -f chat-experiment
+
+# 5. Stop container
+docker stop chat-experiment
+docker rm chat-experiment
+```
+
+---
+
+## Using Docker Compose (Recommended for Development)
+
+### Start the Application
+
+```bash
+# Build and start in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+### Access the Application
+
+```
+http://localhost:5000/?participant_id=TEST001&condition=0
+```
+
+### Manage Data
+
+```bash
+# Export conversations
+docker-compose exec chat-app python db_utils.py export-conversations
+
+# View stats
+docker-compose exec chat-app python db_utils.py stats
+
+# Access container shell
+docker-compose exec chat-app /bin/bash
+```
+
+---
+
+## Production Deployment
+
+### Build Production Image
+
+```bash
+# Build with tag
+docker build -t your-registry.university.edu/chat-experiment:v1.0 .
+
+# Or use docker-compose
+docker-compose build
+```
+
+### Run in Production
+
+```bash
+docker run -d \
+  --name chat-experiment \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  -e MODEL_ENDPOINT=https://... \
+  -e MODEL_DEPLOYMENT=gpt-4 \
+  -e MODEL_API_VERSION=2024-02-15-preview \
+  -e MODEL_SUBSCRIPTION_KEY=your-key \
+  -e FLASK_SECRET_KEY=$(openssl rand -hex 32) \
+  -e DATABASE_URL=sqlite:///data/chat_experiment.db \
+  -v /var/chat-experiment/data:/app/data \
+  -v /var/chat-experiment/logs:/app/logs \
+  chat-experiment:latest
+```
+
+### Using Environment File
+
+```bash
+# Create production .env file
+# Then run:
+docker run -d \
+  --name chat-experiment \
+  --restart unless-stopped \
+  -p 5000:5000 \
+  --env-file .env \
+  -v /var/chat-experiment/data:/app/data \
+  -v /var/chat-experiment/logs:/app/logs \
+  chat-experiment:latest
+```
+
+---
+
+## Volume Management
+
+### Data Persistence
+
+The container uses volumes for:
+
+**Database:**
+- Container: `/app/data`
+- Host: `./data` (or `/var/chat-experiment/data` in production)
+- Contains: `chat_experiment.db`
+
+**Logs:**
+- Container: `/app/logs`
+- Host: `./logs` (or `/var/chat-experiment/logs` in production)
+- Contains: `access.log`, `error.log`
+
+**Static Images:**
+- Container: `/app/app/static/images`
+- Host: `./app/static/images`
+- Contains: `chip.png`, `brain.png`
+
+### Backup Data
+
+```bash
+# Backup database
+docker cp chat-experiment:/app/data/chat_experiment.db ./backup_$(date +%Y%m%d).db
+
+# Or if using volumes
+cp data/chat_experiment.db backups/chat_experiment_$(date +%Y%m%d).db
+```
+
+---
+
+## Environment Variables
+
+### Required
+
+```env
+MODEL_ENDPOINT=https://your-resource.openai.azure.com/
+MODEL_DEPLOYMENT=gpt-4
+MODEL_API_VERSION=2024-02-15-preview
+MODEL_SUBSCRIPTION_KEY=your-api-key
+```
+
+### Optional
+
+```env
+MODEL_TEMPURATURE=1.0
+MODEL_MAX_COMPLETION_TOKENS=2500
+MODEL_MAX_RETRIES=5
+MODEL_RETRY_DELAY=2.0
+FLASK_SECRET_KEY=your-secret-key
+DATABASE_URL=sqlite:///data/chat_experiment.db
+```
+
+---
+
+## Health Checks
+
+The container includes health check endpoints:
+
+```bash
+# Health check (basic liveness)
+curl http://localhost:5000/health
+
+# Readiness check (database connection)
+curl http://localhost:5000/ready
+```
+
+Docker will automatically restart unhealthy containers.
+
+---
+
+## Deployment with Nginx Reverse Proxy
+
+### docker-compose with Nginx
+
+Create `docker-compose.prod.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  chat-app:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - MODEL_ENDPOINT=${MODEL_ENDPOINT}
+      - MODEL_DEPLOYMENT=${MODEL_DEPLOYMENT}
+      - MODEL_API_VERSION=${MODEL_API_VERSION}
+      - MODEL_SUBSCRIPTION_KEY=${MODEL_SUBSCRIPTION_KEY}
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
+    expose:
+      - "5000"
+    networks:
+      - chat-network
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - chat-app
+    networks:
+      - chat-network
+
+networks:
+  chat-network:
+    driver: bridge
+```
+
+### Nginx Configuration
+
+Create `nginx.conf`:
+
+```nginx
+upstream chat-app {
+    server chat-app:5000;
+}
+
+server {
+    listen 80;
+    server_name your-domain.university.edu;
+
+    location / {
+        proxy_pass http://chat-app;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts for LLM responses
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+
+    location /static {
+        proxy_pass http://chat-app/static;
+        expires 30d;
+    }
+}
+```
+
+Run:
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+---
+
+## Building for Different Platforms
+
+### For University Registry
+
+```bash
+# Build
+docker build -t registry.university.edu/chat-experiment:v1.0 .
+
+# Push to registry
+docker push registry.university.edu/chat-experiment:v1.0
+```
+
+### Multi-platform Build
+
+```bash
+# Build for both amd64 and arm64
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t chat-experiment:latest .
+```
+
+---
+
+## Kubernetes Deployment (Optional)
+
+If deploying to Kubernetes, create `k8s-deployment.yaml`:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-experiment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chat-experiment
+  template:
+    metadata:
+      labels:
+        app: chat-experiment
+    spec:
+      containers:
+      - name: chat-experiment
+        image: registry.university.edu/chat-experiment:v1.0
+        ports:
+        - containerPort: 5000
+        env:
+        - name: MODEL_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: chat-secrets
+              key: model-endpoint
+        - name: MODEL_SUBSCRIPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: chat-secrets
+              key: api-key
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: chat-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-experiment
+spec:
+  selector:
+    app: chat-experiment
+  ports:
+  - port: 80
+    targetPort: 5000
+  type: LoadBalancer
+```
+
+---
+
+## Troubleshooting
+
+### Container won't start
+
+```bash
+# Check logs
+docker logs chat-experiment
+
+# Run interactively to debug
+docker run -it --rm --env-file .env chat-experiment:latest /bin/bash
+
+# Inside container:
+python wsgi.py
+```
+
+### Permission errors
+
+```bash
+# Fix data directory permissions
+chmod -R 777 data logs
+
+# Or run container as specific user
+docker run --user $(id -u):$(id -g) ...
+```
+
+### Database locked errors
+
+SQLite doesn't handle concurrent writes well. If you get database locked errors:
+- Use only 1 worker: `--workers 1`
+- Or switch to PostgreSQL for multi-replica deployments
+
+### Image too large
+
+```bash
+# Check image size
+docker images chat-experiment
+
+# Use multi-stage build or alpine base for smaller size
+```
+
+### Can't access from outside
+
+```bash
+# Check port binding
+docker ps
+
+# Test from inside container
+docker exec chat-experiment curl http://localhost:5000/health
+
+# Check firewall
+sudo ufw status
+```
+
+---
+
+## Development Workflow
+
+### Local Development with Hot Reload
+
+For development, use volume mounts for code:
+
+```yaml
+# docker-compose.dev.yml
+version: '3.8'
+services:
+  chat-app:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+      - ./bot.py:/app/bot.py
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=True
+    command: python -m flask run --host 0.0.0.0
+```
+
+Run:
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+Code changes are reflected immediately!
+
+---
+
+## Cheat Sheet
+
+```bash
+# Build
+docker build -t chat-experiment .
+
+# Run with .env
+docker-compose up -d
+
+# Logs
+docker-compose logs -f
+
+# Shell access
+docker-compose exec chat-app /bin/bash
+
+# Export data
+docker-compose exec chat-app python db_utils.py export-conversations
+
+# Restart
+docker-compose restart
+
+# Stop and remove
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+```
+
+---
+
+## Production Checklist
+
+- [ ] `.env` file configured with production credentials
+- [ ] `FLASK_SECRET_KEY` is a secure random value
+- [ ] Data volume configured for persistence
+- [ ] Logs volume configured
+- [ ] Health checks working
+- [ ] Nginx reverse proxy configured (if using)
+- [ ] HTTPS certificates installed
+- [ ] Backup strategy in place
+- [ ] Monitoring configured
+- [ ] Image pushed to registry
+- [ ] Resource limits set (CPU, memory)
+
+---
+
+## Next Steps
+
+Once containerized:
+1. Test locally with `docker-compose up`
+2. Push image to university registry
+3. Deploy to server/Kubernetes
+4. Configure Nginx/ingress
+5. Set up monitoring
+6. Test Qualtrics integration
+
+Your application is now containerized and ready for modern deployment! 🐳

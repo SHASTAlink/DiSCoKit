@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database (will be in volume)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+
+# Logs (will be in volume)
+logs/
+
+# Testing
+test_*.py
+*_test.py
+
+# Documentation (optional - include if you want docs in container)
+docs/
+*.md
+!README.md
+
+# Examples
+example_host_page.html
+
+# Git
+.git/
+.gitignore
+
+# Environment (will be provided at runtime)
+.env
+.flaskenv
+
+# Backups
+*.bak
+*.backup

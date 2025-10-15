@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - {{ config.bot_name }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: {{ config.bot_styles.background_color }};
+            color: {{ config.bot_styles.text_color }};
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: {{ config.bot_styles.primary_color }};
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .bot-icon {
+            font-size: 24px;
+        }
+
+        .bot-icon-img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .bot-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        /* Inline bot identifier (icon or name) for messages */
+        .message-bot-identifier {
+            display: inline-flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-right: 8px;
+            vertical-align: top;
+            font-weight: 600;
+            color: {{ config.bot_styles.text_color }};
+            min-width: 80px;
+        }
+
+        .message-bot-identifier img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            margin-top: 2px;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: {{ config.bot_styles.primary_color }};
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background-color: white;
+            color: {{ config.bot_styles.text_color }};
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+
+        .message-content span:last-child {
+            flex: 1;
+        }
+
+        .input-container {
+            padding: 15px 20px;
+            background-color: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #message-input:focus {
+            border-color: {{ config.bot_styles.primary_color }};
+        }
+
+        #send-button {
+            padding: 12px 24px;
+            background-color: {{ config.bot_styles.primary_color }};
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        #send-button:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        #send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            align-self: flex-start;
+            padding: 12px 16px;
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+            color: {{ config.bot_styles.text_color }};
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background-color: {{ config.bot_styles.primary_color }};
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .error-message {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #fcc;
+        }
+
+        /* Scrollbar styling */
+        .chat-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+    </style>
+</head>
+<body>
+    {% set show_header = config.bot_styles.get('show_header', True) %}
+    {% if show_header %}
+    <div class="chat-header">
+        {% if config.bot_icon and not config.bot_icon.startswith('/static') %}
+            <span class="bot-icon">{{ config.bot_icon }}</span>
+        {% elif config.bot_icon and config.bot_icon.startswith('/static') %}
+            <img src="{{ config.bot_icon }}" alt="Bot icon" class="bot-icon-img">
+        {% endif %}
+        {% if config.bot_name %}
+            <span class="bot-name">{{ config.bot_name }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="chat-container" id="chat-container">
+        <!-- Messages will be dynamically added here -->
+    </div>
+
+    <div class="input-container">
+        <input 
+            type="text" 
+            id="message-input" 
+            placeholder="Type your message..."
+            autocomplete="off"
+        >
+        <button id="send-button">Send</button>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        let isWaitingForResponse = false;
+
+        // Get participant info from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const participantId = urlParams.get('participant_id');
+        const conditionIndex = urlParams.get('condition');
+
+        // Session token for API authentication (from Flask template)
+        const sessionToken = "{{ session_token }}";
+
+        // Bot identifier for inline display (from Jinja template)
+        const botName = "{{ config.bot_name }}";
+        const botIcon = "{{ config.bot_icon }}";
+
+        console.log('Iframe initialized with:', { participantId, conditionIndex });
+
+        if (!participantId || conditionIndex === null) {
+            console.error('⚠️ Missing required URL parameters!');
+            showError('Missing participant_id or condition parameter');
+        }
+
+        if (!sessionToken) {
+            console.error('⚠️ Missing session token!');
+            showError('Authentication error - missing session token');
+        }
+
+        // Load conversation history on page load
+        async function loadHistory() {
+            try {
+                const response = await fetch(`/api/get_history?participant_id=${participantId}&session_token=${sessionToken}`);
+                const data = await response.json();
+                
+                if (data.success && data.messages) {
+                    data.messages.forEach(msg => {
+                        addMessage(msg.role, msg.content, false);
+                    });
+                    scrollToBottom();
+                } else if (data.error) {
+                    console.error('Error loading history:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        // Add a message to the chat
+        function addMessage(role, content, animate = true) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            if (!animate) {
+                messageDiv.style.animation = 'none';
+            }
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // For assistant messages, add inline bot identifier (name or icon) if present
+            if (role === 'assistant') {
+                let identifierHTML = '';
+                
+                // Check if we have an icon that's an image path
+                if (botIcon && botIcon.startsWith('/static')) {
+                    identifierHTML = `<img src="${botIcon}" alt="Bot icon" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 4px;"> `;
+                } 
+                // Check if we have a text/emoji icon
+                else if (botIcon && botIcon.trim() !== '') {
+                    identifierHTML = `${botIcon} `;
+                }
+                // Check if we have a bot name
+                else if (botName && botName.trim() !== '') {
+                    identifierHTML = `<span class="bot-identifier-inline">${botName}:</span> `;
+                }
+                
+                // If we have an identifier, wrap it and add to content
+                if (identifierHTML) {
+                    const identifierSpan = document.createElement('span');
+                    identifierSpan.className = 'bot-identifier-inline';
+                    identifierSpan.innerHTML = identifierHTML;
+                    contentDiv.appendChild(identifierSpan);
+                }
+            }
+            
+            // Add the actual message text
+            const textNode = document.createTextNode(content);
+            contentDiv.appendChild(textNode);
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            
+            // Force a reflow to ensure the DOM is updated before scrolling
+            messageDiv.offsetHeight;
+            scrollToBottom();
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            // Remove any existing loading indicator first (defensive)
+            const existingLoading = document.getElementById('loading-indicator');
+            if (existingLoading) {
+                existingLoading.remove();
+            }
+            
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            chatContainer.appendChild(loadingDiv);
+            
+            // Force a reflow to ensure loading indicator is rendered
+            loadingDiv.offsetHeight;
+            scrollToBottom();
+            
+            console.log('Loading indicator shown');
+        }
+
+        // Remove loading indicator
+        function hideLoading() {
+            const loadingDiv = document.getElementById('loading-indicator');
+            if (loadingDiv) {
+                loadingDiv.remove();
+                console.log('Loading indicator hidden');
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = `Error: ${message}`;
+            chatContainer.appendChild(errorDiv);
+            scrollToBottom();
+            
+            // Remove error after 5 seconds
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Send message to server
+        async function sendMessage() {
+            console.log('sendMessage() called');
+            const message = messageInput.value.trim();
+            
+            if (!message || isWaitingForResponse) {
+                console.log('Message empty or already waiting');
+                return;
+            }
+
+            console.log('Sending message:', message);
+            console.log('Participant ID:', participantId, 'Condition:', conditionIndex);
+
+            // Disable input while waiting
+            isWaitingForResponse = true;
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+
+            // Add user message to UI
+            addMessage('user', message);
+            messageInput.value = '';
+
+            // Use requestAnimationFrame to ensure user message renders before showing loading
+            // This helps prevent rendering issues in iframes
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    showLoading();
+                });
+            });
+
+            try {
+                const response = await fetch('/api/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        participant_id: participantId,
+                        session_token: sessionToken,
+                        condition_index: parseInt(conditionIndex)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    hideLoading();
+                    addMessage('assistant', data.message);
+                } else {
+                    hideLoading();
+                    showError(data.error || 'Failed to send message');
+                }
+            } catch (error) {
+                hideLoading();
+                showError('Network error. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                // Re-enable input
+                isWaitingForResponse = false;
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Event listeners - simple and straightforward
+        console.log('Attaching event listeners...');
+        
+        sendButton.addEventListener('click', function(e) {
+            console.log('Send button clicked');
+            e.preventDefault();
+            sendMessage();
+        });
+        console.log('✓ Send button listener attached');
+        
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                console.log('Enter key pressed in input');
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        console.log('✓ Input keydown listener attached');
+
+        // Load history when page loads
+        window.addEventListener('load', () => {
+            console.log('Chat iframe loaded');
+            loadHistory();
+            messageInput.focus();
+        });
+    </script>
+</body>
+</html>
