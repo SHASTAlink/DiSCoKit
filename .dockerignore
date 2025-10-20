@@ -1,57 +1,103 @@
-# Python
+# ============================================================================
+# SECRETS AND SENSITIVE DATA (Never include in Docker image!)
+# ============================================================================
+.env
+.env.*
+!.env.example
+
+# ============================================================================
+# RUNTIME DATA (Mounted as volumes instead)
+# ============================================================================
+# Database files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Log files
+logs/
+*.log
+
+# Export files
+export_*.json
+conversations_*.csv
+messages_*.csv
+
+# ============================================================================
+# STUDY-SPECIFIC FILES (Optional - Include if you want them in image)
+# ============================================================================
+# Uncomment these if you prefer to mount them as volumes:
+# study_docs/
+# experimental_conditions.json
+
+# ============================================================================
+# VERSION CONTROL
+# ============================================================================
+.git
+.gitignore
+.gitattributes
+
+# ============================================================================
+# PYTHON
+# ============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
 *.egg-info/
 dist/
 build/
 
-# IDEs
+# ============================================================================
+# VIRTUAL ENVIRONMENTS
+# ============================================================================
+venv/
+env/
+ENV/
+.venv/
+
+# ============================================================================
+# IDE & EDITORS
+# ============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
-# OS
 .DS_Store
-Thumbs.db
 
-# Database (will be in volume)
-*.db
-*.db-journal
-*.db-wal
-*.db-shm
-data/
+# ============================================================================
+# TESTING
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
 
-# Logs (will be in volume)
-logs/
+# ============================================================================
+# DOCUMENTATION (Optional - exclude if you want smaller image)
+# ============================================================================
+# Uncomment to exclude documentation from image:
+# README.md
+# *.md
+# docs/
+# DEPLOYMENT_CHECKLIST.md
+# ORGANIZATION_GUIDE.md
+# MAKING_PUBLIC.md
 
-# Testing
-test_*.py
-*_test.py
-
-# Documentation (optional - include if you want docs in container)
-docs/
-*.md
-!README.md
-
-# Examples
-example_host_page.html
-
-# Git
-.git/
-.gitignore
-
-# Environment (will be provided at runtime)
-.env
+# ============================================================================
+# DEVELOPMENT/BUILD FILES
+# ============================================================================
 .flaskenv
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
 
-# Backups
+# Backup files
 *.bak
 *.backup
+
+# OS files
+Thumbs.db

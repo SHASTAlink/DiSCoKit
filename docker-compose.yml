@@ -4,6 +4,9 @@ services:
   chat-app:
     build: .
     ports:
+      # Port mapping format: "HOST:CONTAINER"
+      # Think: "The outside world connects to HOST port, which maps to CONTAINER port"
+      # Example: "8080:5000" means localhost:8080 -> container's port 5000
       - "5000:5000"
     volumes:
       # Mount data directory for persistence
@@ -12,6 +15,8 @@ services:
       - ./logs:/app/logs
       # Mount static images (if you update them)
       - ./app/static/images:/app/static/images
+      # Mount experimental conditions (keeps study design out of Docker image)
+      - ./experimental_conditions.json:/app/experimental_conditions.json
     environment:
       # Azure OpenAI Configuration
       - MODEL_ENDPOINT=${MODEL_ENDPOINT}
@@ -27,10 +32,10 @@ services:
       
       # Flask Configuration
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-dev-secret-change-in-production}
-
-      # host lockdown
-      # - ALLOWED_FRAME_ANCESTORS=${ALLOWED_FRAME_ANCESTORS}
-
+      
+      # Security - Iframe Embedding Control
+      - ALLOWED_FRAME_ANCESTORS=${ALLOWED_FRAME_ANCESTORS:-}
+      
       # Database - use volume mount
       - DATABASE_URL=sqlite:///data/chat_experiment.db
     

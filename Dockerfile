@@ -1,42 +1,45 @@
-# Use official Python runtime as base image
-FROM python:3.11-slim
+# Use Python 3.12 slim image (matches development environment)
+FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (if needed)
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (for better caching)
+# Copy requirements first (for Docker layer caching optimization)
+# When only code changes, this layer is cached and pip install is skipped
 COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY app/ ./app/
-COPY bot.py .
-COPY experimental_conditions.json .
-COPY wsgi.py .
+# Copy everything from project directory
+# Filtered by .dockerignore to exclude:
+#   - .env files (secrets)
+#   - data/ and logs/ (runtime files)
+#   - venv/ and __pycache__/ (development files)
+#   - .git/ (version control)
+# Includes:
+#   - app/ (application code)
+#   - bot.py, wsgi.py, db_utils.py (Python modules)
+#   - uwsgi.ini (if using uWSGI)
+#   - docs/ (documentation - optional)
+#   - experimental_conditions.json (or mount as volume)
+COPY . .
 
-# Create necessary directories
-RUN mkdir -p data logs app/static/images
-
-# Copy static images if they exist (won't fail if missing)
-COPY app/static/images/* ./app/static/images/ 2>/dev/null || true
-
-# Set permissions
-RUN chmod -R 755 /app && \
-    chmod -R 777 data logs
+# Create directories for mounted volumes
+RUN mkdir -p /app/data /app/logs
 
 # Expose port
 EXPOSE 5000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()"
 
-# Run with Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--threads", "2", "--timeout", "120", "--access-logfile", "logs/access.log", "--error-logfile", "logs/error.log", "--log-level", "info", "wsgi:app"]
+# Run with Gunicorn (default)
+# To use uWSGI instead: CMD ["uwsgi", "--ini", "uwsgi.ini"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "wsgi:app"]
