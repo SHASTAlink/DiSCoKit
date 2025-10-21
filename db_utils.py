@@ -12,7 +12,7 @@ from app import create_app, db
 from app.models import Participant, Message
 
 
-def export_to_json(output_file='export_data.json'):
+def export_to_json(output_file='data/export_data.json'):
     """Export all data to JSON format."""
     app = create_app()
     with app.app_context():
@@ -58,7 +58,7 @@ def export_to_json(output_file='export_data.json'):
         return export_data
 
 
-def export_to_csv(output_file='export_messages.csv'):
+def export_to_csv(output_file='data/export_messages.csv'):
     """Export all messages to CSV format (one row per message)."""
     app = create_app()
     with app.app_context():
@@ -88,7 +88,7 @@ def export_to_csv(output_file='export_messages.csv'):
         print(f"✅ Exported {len(messages)} messages to {output_file}")
 
 
-def export_conversations_csv(output_file='conversations.csv'):
+def export_conversations_csv(output_file='data/conversations.csv'):
     """
     Export conversations to CSV format (one row per participant).
     Each row contains: participant_id, condition, full_conversation
@@ -305,13 +305,13 @@ def main():
     
     # Export commands
     export_json = subparsers.add_parser('export-json', help='Export data to JSON')
-    export_json.add_argument('--output', default='export_data.json', help='Output filename')
+    export_json.add_argument('--output', default='data/export_data.json', help='Output filename')
     
     export_csv = subparsers.add_parser('export-csv', help='Export messages to CSV (one row per message)')
-    export_csv.add_argument('--output', default='export_messages.csv', help='Output filename')
+    export_csv.add_argument('--output', default='data/export_messages.csv', help='Output filename')
     
     export_convos = subparsers.add_parser('export-conversations', help='Export conversations to CSV (one row per participant)')
-    export_convos.add_argument('--output', default='conversations.csv', help='Output filename')
+    export_convos.add_argument('--output', default='data/conversations.csv', help='Output filename')
     
     # View commands
     subparsers.add_parser('stats', help='Show database statistics')

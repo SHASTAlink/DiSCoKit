@@ -65,6 +65,8 @@ http://localhost:5000/?participant_id=TEST001&condition=0
 ### Manage Data
 
 ```bash
+# should result in files on host
+
 # Export conversations
 docker-compose exec chat-app python db_utils.py export-conversations
 
