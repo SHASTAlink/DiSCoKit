@@ -116,21 +116,14 @@ The assistant will guide you through:
 ```javascript
 Qualtrics.SurveyEngine.addOnload(function()
 {
-    // CHANGE THIS: Replace with your chat app URL (no trailing slash)
-    var CHAT_APP_URL = "https://your-chat-app.com";
+    var CHAT_APP_URL = "https://shade.ischool.syr.edu";
     
-    // ============================================================
-    // Don't change anything below this line
-    // ============================================================
-    
-    this.hideNextButton();
     var textInput = this.getQuestionContainer().querySelector('.InputText');
     if (textInput) textInput.style.display = 'none';
     
     var participantId = "${e://Field/participant_id}";
     var condition = "${e://Field/condition}";
     
-    // Validate data - check if piping failed
     if (!participantId || participantId.length < 2 || participantId.charAt(0) === '$') {
         alert("Error: Participant ID not set. Check Survey Flow.");
         return;
@@ -140,7 +133,6 @@ Qualtrics.SurveyEngine.addOnload(function()
         return;
     }
     
-    // Create iframe
     var iframe = document.createElement('iframe');
     iframe.src = CHAT_APP_URL + "/gui?participant_id=" + encodeURIComponent(participantId) + 
                  "&condition=" + encodeURIComponent(condition);
@@ -151,15 +143,6 @@ Qualtrics.SurveyEngine.addOnload(function()
     iframe.frameBorder = '0';
     
     this.getQuestionContainer().appendChild(iframe);
-    
-    iframe.onload = function() {
-        Qualtrics.SurveyEngine.getInstance().showNextButton();
-    };
-    
-    // Backup: show Next button after 5 seconds
-    setTimeout(function() {
-        Qualtrics.SurveyEngine.getInstance().showNextButton();
-    }, 5000);
 });
 
 Qualtrics.SurveyEngine.addOnReady(function() {});
