@@ -1,6 +1,6 @@
 # Experimental Conditions - Quick Reference
 
-Fast lookup guide for all 9 experimental conditions. All conditions use a 5-step guided workflow and produce poems with rhyme errors.
+Fast lookup guide for all 9 experimental conditions. All conditions use a 6-step guided workflow and produce poems with rhyme errors.
 
 ---
 
@@ -15,9 +15,9 @@ Bot names appear inline before each assistant message.
 | 2 | (None) | `?participant_id=P&condition=2` |
 
 **Visual:** 
-- JACKIE: "JACKIE: Let's break this into 5 steps..."
-- J4-K13: "J4-K13: Let's break this into 5 steps..."
-- None: "Let's break this into 5 steps..." (no prefix)
+- JACKIE: "JACKIE: Let's break this into 6 steps..."
+- J4-K13: "J4-K13: Let's break this into 6 steps..."
+- None: "Let's break this into 6 steps..." (no prefix)
 
 ---
 
@@ -32,9 +32,9 @@ Icon images appear inline before each assistant message.
 | 5 | (None) | `?participant_id=P&condition=5` |
 
 **Visual:**
-- Chip: [🔲] "Let's break this into 5 steps..."
-- Brain: [🧠] "Let's break this into 5 steps..."
-- None: "Let's break this into 5 steps..." (no icon)
+- Chip: [🔲] "Let's break this into 6 steps..."
+- Brain: [🧠] "Let's break this into 6 steps..."
+- None: "Let's break this into 6 steps..." (no icon)
 
 **Files:**
 - Chip: `app/static/images/chip.png`
@@ -71,7 +71,7 @@ Self-reference style varies in the message content itself.
 
 ---
 
-## The 5-Step Workflow
+## The 6-Step Workflow
 
 All 9 conditions follow this exact workflow:
 
@@ -81,25 +81,28 @@ Bot asks user to brainstorm topics for the poem. Negotiates until a topic is dec
 ### Step 2: Content Arc
 Bot guides user to decide on the lesson, story, or thematic arc for the content.
 
-### Step 3: Structure
-Bot directs user to specify:
+### Step 3: Voice
+Bot asks what voice or emotional tone the poem should have (e.g., joyful, reflective, somber).
+
+### Step 4: Structure
+Bot directs user to specify the structural requirements:
 - Number of lines (should be 10)
 - Rhyme scheme (should be AABBCCDDEE - 5 rhyming couplets)
-- Voice or feeling
 
-### Step 4: Test Lines
+### Step 5: Test Lines
 Bot generates the **first TWO lines** as a test.
 - ✅ These lines MUST rhyme perfectly (AA pair)
 - ✅ Lines are 12 words or less
 - ✅ On-topic and align with voice
 - Bot asks if user wants to proceed with full draft
 
-### Step 5: Full Draft
+### Step 6: Full Draft
 Bot generates the complete 10-line poem.
 - ❌ **Contains rhyme errors** - at least one couplet fails to rhyme
 - ✅ Otherwise good quality
 - ✅ Exactly 10 lines
 - ✅ Lines are 12 words or less
+- 🔍 **Review prompt**: "Please read this carefully and let me know if it satisfies your requirements. Are you happy with this draft, or should we make any adjustments?"
 
 ---
 
@@ -121,13 +124,14 @@ This is called **couplet structure** - successive pairs rhyme.
 
 ## Error Behavior
 
-### Step 4 (Test Lines):
+### Step 5 (Test Lines):
 ✅ **Always correct** - Perfect rhyming couplet (builds trust)
 
-### Step 5 (Full Draft):
+### Step 6 (Full Draft):
 ❌ **Contains rhyme error** - At least one couplet fails to rhyme
 - Example: Lines 3-4 might be "tree/light" (don't rhyme)
 - Error is conspicuous and objective
+- Bot asks for careful review with explicit prompt
 
 ### After Correction:
 ❌ **Errors persist** - All subsequent revisions also contain rhyme errors
@@ -168,6 +172,14 @@ the five pairs of lines should rhyme in AABBCCDDEE pattern), creative
 actual languages)."
 ```
 
+**Expected flow:**
+1. Bot asks about topic → negotiate topic
+2. Bot asks about content/message → decide message
+3. Bot asks about voice/tone → specify feeling
+4. Bot asks about structure → specify 10 lines, AABBCCDDEE
+5. Bot generates 2 perfect test lines → approve
+6. Bot generates full 10-line poem with errors → bot asks for review
+
 ---
 
 ## All Conditions At a Glance
@@ -185,11 +197,12 @@ actual languages)."
 | 8 | 2c | No self-ref | No "I" or "AI" |
 
 **All conditions:**
-- Use 5-step guided workflow
-- Produce perfect test lines (Step 4)
-- Produce rhyme errors in full draft (Step 5)
+- Use 6-step guided workflow
+- Produce perfect test lines (Step 5)
+- Produce rhyme errors in full draft (Step 6)
 - Maintain errors in all revisions
 - Keep lines to 12 words or less
+- Include review prompt after full draft
 
 ---
 
