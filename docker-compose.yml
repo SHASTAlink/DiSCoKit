@@ -35,7 +35,8 @@ services:
       - ALLOWED_FRAME_ANCESTORS=${ALLOWED_FRAME_ANCESTORS:-}
       
       # Database - use volume mount
-      - DATABASE_URL=sqlite:///data/chat_experiment.db
+      # - DATABASE_URL=sqlite:///data/chat_experiment.db
+      - DATABASE_URL=sqlite:////app/data/chat_experiment.db
     
     restart: unless-stopped
     
