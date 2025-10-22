@@ -51,8 +51,6 @@ def create_app(config_name=None):
         'MODEL_DEPLOYMENT',
         'MODEL_API_VERSION',
         'MODEL_SUBSCRIPTION_KEY',
-        'MODEL_TEMPERATURE',
-        'MODEL_MAX_COMPLETION_TOKENS',
         'MODEL_MAX_RETRIES',
         'MODEL_RETRY_DELAY'
     ]
