@@ -40,6 +40,7 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/health').read()"
 
-# Run with Gunicorn (default)
+# Run with Gunicorn using preload to avoid multi-worker database initialization race
+# --preload loads app once before forking workers (better performance, avoids race conditions)
 # To use uWSGI instead: CMD ["uwsgi", "--ini", "uwsgi.ini"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "wsgi:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--preload", "wsgi:app"]

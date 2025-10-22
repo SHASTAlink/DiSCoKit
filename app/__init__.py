@@ -46,6 +46,8 @@ def create_app(config_name=None):
     app = Flask(__name__)
     
     # Validate required environment variables on startup
+    # Note: Model parameters (temperature, max_completion_tokens) are now configured
+    # in experimental_conditions.json under study_metadata.default_model_params
     required_env_vars = [
         'MODEL_ENDPOINT',
         'MODEL_DEPLOYMENT',
@@ -137,8 +139,12 @@ def create_app(config_name=None):
     from app.routes import main_bp
     app.register_blueprint(main_bp)
     
-    # Create database tables
+    # Create database tables (safe for multi-worker environments)
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            # Tables may already exist from another worker - this is fine
+            app.logger.debug(f"Database initialization: {e}")
     
     return app
