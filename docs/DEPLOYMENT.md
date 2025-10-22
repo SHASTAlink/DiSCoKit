@@ -64,15 +64,13 @@ pip install -r requirements.txt
 Create `.env` file:
 
 ```bash
-# Azure OpenAI Configuration (Required)
+# Azure OpenAI Configuration (Deployment Settings - Required)
 MODEL_ENDPOINT=https://your-resource.openai.azure.com/
 MODEL_DEPLOYMENT=gpt-4
 MODEL_API_VERSION=2024-02-15-preview
 MODEL_SUBSCRIPTION_KEY=your-api-key-here
 
-# Model Parameters (Required)
-MODEL_TEMPERATURE=1.0
-MODEL_MAX_COMPLETION_TOKENS=2500
+# Retry Configuration (Required)
 MODEL_MAX_RETRIES=5
 MODEL_RETRY_DELAY=2.0
 
@@ -87,6 +85,10 @@ ALLOWED_FRAME_ANCESTORS=
 
 # Database - use absolute path for production
 DATABASE_URL=sqlite:////home/yourusername/chat-experiment/data/chat_experiment.db
+
+# NOTE: Model parameters (temperature, max_completion_tokens) are configured
+# in experimental_conditions.json under study_metadata.default_model_params
+# This separates study-specific configuration from deployment configuration.
 ```
 
 **Generate a secure secret key:**
@@ -94,14 +96,42 @@ DATABASE_URL=sqlite:////home/yourusername/chat-experiment/data/chat_experiment.d
 python -c 'import secrets; print(secrets.token_hex(32))'
 ```
 
-### 4. Create Data Directory
+### 4. Configure Study Parameters
+
+Edit `experimental_conditions.json` to set model parameters:
+
+```json
+{
+  "study_metadata": {
+    "study_id": "your_study_id",
+    "study_name": "Your Study Name",
+    "default_model_params": {
+      "temperature": 1.0,
+      "max_completion_tokens": 2500
+    },
+    "identity_protection": {
+      "enabled": true,
+      ...
+    }
+  },
+  "conditions": [...]
+}
+```
+
+**These are study-specific settings, not deployment settings:**
+- `temperature`: Sampling temperature (0.0-2.0)
+- `max_completion_tokens`: Maximum response length
+
+Individual conditions can override these with `model_overrides` if needed.
+
+### 5. Create Data Directory
 
 ```bash
 mkdir -p data
 chmod 755 data
 ```
 
-### 5. Configure Production Security
+### 6. Configure Production Security
 
 **Before launching, configure iframe embedding restrictions:**
 
@@ -130,7 +160,7 @@ After setting this and restarting the app:
 - ✅ Chat works when embedded in Qualtrics
 - ❌ Chat blocked when embedded on other websites
 
-### 6. Initialize Database
+### 7. Initialize Database
 
 ```bash
 # Development mode test
@@ -396,13 +426,13 @@ cd ~/chat-experiment
 source venv/bin/activate
 
 # Export to JSON (most comprehensive)
-python db_utils.py export-json --output data_export_$(date +%Y%m%d).json
+python db_utils.py export-json --output data/data_export_$(date +%Y%m%d).json
 
 # Or export to CSV (conversations format)
-python db_utils.py export-conversations --output conversations_$(date +%Y%m%d).csv
+python db_utils.py export-conversations --output data/conversations_$(date +%Y%m%d).csv
 
 # Or export to CSV (messages format)
-python db_utils.py export-csv --output messages_$(date +%Y%m%d).csv
+python db_utils.py export-csv --output data/messages_$(date +%Y%m%d).csv
 ```
 
 ### Download to Local Machine
@@ -411,10 +441,10 @@ From your **local terminal** (not the server):
 
 ```bash
 # Download JSON export
-scp yourusername@your-server.university.edu:~/chat-experiment/data_export_*.json ./
+scp yourusername@your-server.university.edu:~/chat-experiment/data/data_export_*.json ./
 
 # Or download CSV
-scp yourusername@your-server.university.edu:~/chat-experiment/conversations_*.csv ./
+scp yourusername@your-server.university.edu:~/chat-experiment/data/conversations_*.csv ./
 ```
 
 ### Security Benefits
@@ -507,6 +537,7 @@ ls -lh data/
 - [ ] **Session token authentication active** (prevents API abuse)
 - [ ] **Rate limiting configured** (30/min, 500/day per IP)
 - [ ] **Input validation active** (participant IDs, message length)
+- [ ] **Model parameters configured in experimental_conditions.json** (not .env)
 
 ---
 
@@ -525,6 +556,9 @@ git pull
 
 # Install any new dependencies
 pip install -r requirements.txt
+
+# If you changed model parameters, update experimental_conditions.json
+# (no need to edit .env for model params)
 
 # Restart the service
 sudo systemctl start chat-experiment
@@ -566,6 +600,7 @@ curl http://127.0.0.1:5000/
 - Permission errors: Check file ownership and permissions
 - Database locked: Only one writer at a time with SQLite (normal for low traffic)
 - Timeout errors: Increase proxy_read_timeout in nginx config
+- Model parameter changes: Edit experimental_conditions.json, not .env
 
 For university IT support, provide:
 - Service status output

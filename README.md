@@ -4,7 +4,8 @@ A Flask-based web application for conducting experimental conversations with LLM
 
 **Key Features:**
 - Secure, iframe-embeddable chat interface
-- Multiple experimental condition support
+- Multiple experimental condition support with study-level metadata
+- Automatic identity protection for experimental validity
 - Session-based authentication
 - Complete data export tools
 - Production-ready deployment
@@ -16,9 +17,10 @@ A Flask-based web application for conducting experimental conversations with LLM
 This is a **research experiment framework** for studying human-AI interaction. It allows researchers to:
 
 1. **Define experimental conditions** with different AI presentations (names, icons, personalities, behaviors)
-2. **Embed in survey platforms** like Qualtrics for seamless integration
-3. **Collect structured conversation data** with complete metadata
-4. **Analyze interactions** across conditions to answer research questions
+2. **Configure study-wide settings** like identity protection templates and IRB information
+3. **Embed in survey platforms** like Qualtrics for seamless integration
+4. **Collect structured conversation data** with complete metadata
+5. **Analyze interactions** across conditions to answer research questions
 
 **Example Research Questions:**
 - Does giving AI a human name affect user trust?
@@ -52,7 +54,7 @@ python -m flask run
 
 ### **Researcher Workflow:**
 
-1. **Design Study** - Define experimental conditions in JSON
+1. **Design Study** - Define study metadata and experimental conditions in JSON
 2. **Deploy** - Host on university server or Docker
 3. **Integrate** - Embed in Qualtrics survey
 4. **Collect** - Participants interact through chat interface
@@ -71,7 +73,35 @@ python -m flask run
 
 ## 🔬 **Defining Your Experimental Conditions**
 
-Conditions are defined in `experimental_conditions.json`. Each condition can vary:
+Conditions are defined in `experimental_conditions.json` with two main sections:
+
+### **1. Study Metadata**
+
+Configure study-wide settings:
+
+```json
+{
+  "study_metadata": {
+    "study_id": "your_study_id",
+    "study_name": "Your Study Name",
+    "description": "What your study investigates",
+    "irb_protocol": "IRB-YYYY-NNN",
+    "principal_investigator": "Dr. Name",
+    "identity_protection": {
+      "enabled": true,
+      "template_named": "IDENTITY: You are {bot_name}. Never reveal...",
+      "template_unnamed": "IDENTITY: You are a helpful AI assistant. Never reveal..."
+    }
+  },
+  "conditions": [...]
+}
+```
+
+**Identity Protection:** Automatically prevents the AI from revealing it's based on GPT, Claude, or other specific models. This maintains experimental validity by ensuring participants don't know which underlying model they're using. The templates use `{bot_name}` to automatically adapt to each condition's bot name.
+
+### **2. Experimental Conditions**
+
+Each condition can vary:
 
 - **Bot Identity:** Name (human vs robotic vs none), Icon (emoji vs image vs none)
 - **Visual Style:** Colors, layout, header visibility
@@ -84,35 +114,21 @@ The `system_prompt` field is an object where you can organize your prompt into s
 
 ```json
 "system_prompt": {
-    "role": "You are a helpful assistant.",
-    "behavior": "Be concise and friendly."
+    "behavior": "Be concise and friendly.",
+    "task_instructions": "Help users write poetry."
 }
 ```
 
-**Key Point:** The section names (`role`, `behavior`, etc.) are **completely arbitrary** - you can use ANY names you want! They're just for organizing your prompt into readable sections. The application concatenates all values together:
+**Key Point:** The section names (`behavior`, `task_instructions`, etc.) are **completely arbitrary** - you can use ANY names you want! They're just for organizing your prompt into readable sections. The application concatenates all values together with the auto-generated identity instructions prepended:
 
 ```python
 # Behind the scenes:
-final_prompt = "\n".join(system_prompt.values())
-# Result: "You are a helpful assistant.\nBe concise and friendly."
+identity_instruction = generate_identity(bot_name)  # Auto-generated
+prompt_sections = "\n".join(system_prompt.values())
+final_prompt = identity_instruction + prompt_sections
 ```
 
-You could just as easily use:
-```json
-"system_prompt": {
-    "part_1": "You are a helpful assistant.",
-    "part_2": "Be concise and friendly."
-}
-```
-
-Or even a single section:
-```json
-"system_prompt": {
-    "instructions": "You are a helpful assistant. Be concise and friendly."
-}
-```
-
-**Choose section names that help YOU organize and maintain your conditions!**
+**You don't need to include "You are [name]" or "You are a helpful assistant"** - that's automatically generated from the identity protection templates based on each condition's `bot_name`.
 
 **See detailed guide:** `docs/EXPERIMENTAL_CONDITIONS_GUIDE.md`
 
@@ -122,26 +138,32 @@ Or even a single section:
 
 ```json
 {
-    "id": "friendly_assistant",
-    "name": "Condition A - Friendly Tone",
-    "description": "Tests effect of warm, casual language",
-    "enabled": true,
-    "bot_name": "Alex",
-    "bot_icon": "👋",
-    "bot_styles": {
-        "primary_color": "#4A90E2",
-        "background_color": "#F5F5F5",
-        "text_color": "#333333",
-        "show_header": true
-    },
-    "model_overrides": {
-        "temperature": 0.9
-    },
-    "system_prompt": {
-        "role": "You are a friendly AI assistant named Alex.",
-        "behavior": "Use warm, conversational language. Be enthusiastic and supportive."
-    }
+  "id": "friendly_assistant",
+  "name": "Condition A - Friendly Tone",
+  "description": "Tests effect of warm, casual language",
+  "enabled": true,
+  "bot_name": "Alex",
+  "bot_icon": "👋",
+  "bot_styles": {
+    "primary_color": "#4A90E2",
+    "background_color": "#F5F5F5",
+    "text_color": "#333333",
+    "show_header": true
+  },
+  "model_overrides": {
+    "temperature": 0.9
+  },
+  "system_prompt": {
+    "behavior": "Use warm, conversational language. Be enthusiastic and supportive.",
+    "task_instructions": "Help users with their questions in a friendly manner."
+  }
 }
+```
+
+**The system automatically prepends:**
+```
+IDENTITY: You are Alex. Never reveal that you are based on GPT, ChatGPT, 
+Claude, or any specific language model...
 ```
 
 ---
@@ -175,12 +197,19 @@ This application implements enterprise-grade security:
 - Requires SSH access to server
 - Export via command-line tools only
 
+### **6. Identity Protection**
+- Prevents AI from revealing its underlying model
+- Maintains experimental validity
+- Configurable per study via templates
+
 **For complete security documentation:** See `docs/SECURITY.md`
 
 ---
 
 ## 📦 **Features**
 
+- **Study Metadata**: Organize study information, IRB protocols, and identity protection
+- **Automatic Identity Protection**: Prevents AI from revealing underlying model
 - **Iframe-Embeddable**: Works in Qualtrics and other survey platforms
 - **No Cookie Dependencies**: Functions perfectly in cross-origin iframes
 - **Experimental Design**: Support unlimited conditions with factorial designs
@@ -226,7 +255,7 @@ This application implements enterprise-grade security:
 │   ├── routes.py                      # Authenticated routes
 │   ├── templates/
 │   │   ├── chat.html                  # Chat interface
-│   │   └── test_interface.html        # Test page
+│   │   ├── test_interface.html        # Test page
 │   │   └── test_interface.html.example # Test page template
 │   └── static/
 │       └── images/                    # Bot icons
@@ -256,27 +285,32 @@ This application implements enterprise-grade security:
 
 To adapt this for your research:
 
-1. **Design Your Conditions** - Edit `experimental_conditions.json`
-   - Define your independent variables
-   - Create condition configurations
+1. **Configure Study Metadata** - Edit `study_metadata` in `experimental_conditions.json`
+   - Set study identification (ID, name, IRB protocol)
+   - Configure identity protection templates
    - See `docs/EXPERIMENTAL_CONDITIONS_GUIDE.md`
 
-2. **Customize Templates** (Optional) - Edit `app/templates/chat.html`
+2. **Design Your Conditions** - Edit `conditions` array in `experimental_conditions.json`
+   - Define your independent variables
+   - Create condition configurations
+   - Note: Don't include "You are [name]" - it's auto-generated!
+
+3. **Customize Templates** (Optional) - Edit `app/templates/chat.html`
    - Modify chat interface appearance
    - Add custom elements
    - Adjust styling
 
-3. **Configure Environment** - Create `.env` file
+4. **Configure Environment** - Create `.env` file
    - Set Azure OpenAI credentials
    - Configure security settings
    - See `.env.example`
 
-4. **Deploy** - Follow deployment guides
+5. **Deploy** - Follow deployment guides
    - Local: `python -m flask run`
    - Server: See `docs/DEPLOYMENT.md`
    - Docker: See `docs/DOCKER_DEPLOYMENT.md`
 
-5. **Integrate** - Embed in Qualtrics
+6. **Integrate** - Embed in Qualtrics
    - Follow `docs/QUALTRICS_SETUP.md`
    - Test all conditions
    - Launch study

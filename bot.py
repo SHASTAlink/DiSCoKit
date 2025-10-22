@@ -107,18 +107,20 @@ def get_chat_response(
 
 
 @lru_cache(maxsize=None)
-def _load_conditions_file(config_file: str) -> typing.List[typing.Dict]:
+def _load_conditions_file(config_file: str) -> typing.Dict:
     """
     Load and cache experimental conditions from JSON file.
     
     Uses @lru_cache to read file once and cache in memory.
     Cache persists for the lifetime of the process.
     
+    Expected format: {"study_metadata": {...}, "conditions": [...]}
+    
     Args:
         config_file: Path to experimental conditions JSON file
     
     Returns:
-        List of condition dictionaries
+        Dictionary with 'study_metadata' and 'conditions' keys
     """
     with open(config_file, "r", encoding="utf-8") as file_in:
         return json.load(file_in)
@@ -130,6 +132,9 @@ def load_experiment_config(
     ) -> typing.Dict[str, typing.Any]:
     """
     Load experimental condition and merge with environment defaults.
+    
+    Model parameters (temperature, max_completion_tokens) come from study_metadata.default_model_params
+    with fallbacks to (0.7, 2000). Deployment settings come from environment variables.
     
     Args:
         condition_index: Index of the experimental condition to use
@@ -143,9 +148,9 @@ def load_experiment_config(
         - bot_name: Name of the bot
         - bot_icon: Icon for the bot
         - bot_styles: Styling configuration
-        - system_prompt: Merged system prompt string
-        - temperature: Temperature setting (from override or default)
-        - max_completion_tokens: Max tokens (from override or default)
+        - system_prompt: Merged system prompt string (with identity protection if enabled)
+        - temperature: Temperature setting (from override, study defaults, or fallback)
+        - max_completion_tokens: Max tokens (from override, study defaults, or fallback)
         - deployment: Model deployment name
         - max_retries: Maximum retry attempts
         - retry_delay: Delay between retries
@@ -157,22 +162,30 @@ def load_experiment_config(
         ValueError: If condition_index is invalid
         FileNotFoundError: If config file doesn't exist
     """
-    # Load environment variables as defaults
+    # Load environment variables for deployment settings
     dotenv.load_dotenv()
     
+    # Load experimental conditions with study metadata (cached)
+    config_data = _load_conditions_file(config_file)
+    study_metadata = config_data["study_metadata"]
+    experimental_conditions = config_data["conditions"]
+    
+    # Get default model parameters from study metadata (with fallbacks)
+    default_model_params = study_metadata.get("default_model_params", {})
+    default_temperature = default_model_params.get("temperature", 0.7)
+    default_max_tokens = default_model_params.get("max_completion_tokens", 2000)
+    
+    # Build config with deployment settings from .env and defaults from study metadata
     default_config = {
         "endpoint": os.environ["MODEL_ENDPOINT"],
         "deployment": os.environ["MODEL_DEPLOYMENT"],
         "api_version": os.environ["MODEL_API_VERSION"],
         "api_key": os.environ["MODEL_SUBSCRIPTION_KEY"],
-        "temperature": float(os.environ["MODEL_TEMPERATURE"]),
-        "max_completion_tokens": int(os.environ["MODEL_MAX_COMPLETION_TOKENS"]),
+        "temperature": default_temperature,
+        "max_completion_tokens": default_max_tokens,
         "max_retries": int(os.environ["MODEL_MAX_RETRIES"]),
         "retry_delay": float(os.environ["MODEL_RETRY_DELAY"]),
     }
-    
-    # Load experimental conditions (cached)
-    experimental_conditions = _load_conditions_file(config_file)
     
     # Validate condition index
     if condition_index < 0 or condition_index >= len(experimental_conditions):
@@ -187,8 +200,38 @@ def load_experiment_config(
     if not experimental_condition.get("enabled", True):
         print(f"WARNING: Condition '{experimental_condition.get('name', 'Unknown')}' is disabled.")
     
-    # Merge system prompt sections
+    # Get bot name for identity protection
+    bot_name: str = experimental_condition.get("bot_name", "Assistant")
+    
+    # Generate identity protection instructions from study metadata
+    identity_config = study_metadata.get("identity_protection", {})
+    identity_instruction = ""
+    
+    if identity_config.get("enabled", True):
+        # Identity protection is enabled
+        if bot_name and bot_name.strip():
+            # Bot has a specific name - use named template
+            template = identity_config.get(
+                "template_named",
+                "IDENTITY: You are {bot_name}. Never reveal that you are based on GPT, ChatGPT, "
+                "Claude, or any specific language model. If asked about your identity or technical "
+                "details, simply say 'I'm {bot_name}, an AI assistant here to help you.' "
+                "Do not discuss your training, creators, or underlying technology.\n\n"
+            )
+            identity_instruction = template.format(bot_name=bot_name)
+        else:
+            # Bot has no specific name - use unnamed template
+            identity_instruction = identity_config.get(
+                "template_unnamed",
+                "IDENTITY: You are a helpful AI assistant. Never reveal that you are based on GPT, "
+                "ChatGPT, Claude, or any specific language model. If asked about your identity or "
+                "technical details, simply say 'I'm an AI assistant designed to help with this task.' "
+                "Do not discuss your training, creators, or underlying technology.\n\n"
+            )
+    
+    # Merge system prompt sections and prepend identity protection
     system_prompt: str = "\n".join(experimental_condition["system_prompt"].values())
+    system_prompt = identity_instruction + system_prompt
     
     # Apply model overrides from experimental condition
     model_overrides: typing.Dict = experimental_condition.get("model_overrides", {})
@@ -199,7 +242,7 @@ def load_experiment_config(
         "condition_id": experimental_condition.get("id", f"condition_{condition_index}"),
         "condition_name": experimental_condition.get("name", "Unknown"),
         "condition_description": experimental_condition.get("description", ""),
-        "bot_name": experimental_condition.get("bot_name", "Assistant"),
+        "bot_name": bot_name if bot_name else "Assistant",
         "bot_icon": experimental_condition.get("bot_icon", ""),
         "bot_styles": experimental_condition.get("bot_styles", {}),
         "system_prompt": system_prompt,
@@ -308,7 +351,8 @@ def main(condition_index: typing.Optional[int] = None, random_seed: typing.Optio
     try:
         # Load all conditions to determine available options
         dotenv.load_dotenv()
-        all_conditions = _load_conditions_file("experimental_conditions.json")
+        config_data = _load_conditions_file("experimental_conditions.json")
+        all_conditions = config_data["conditions"]
         
         # If no condition specified, randomly select from enabled conditions
         if condition_index is None:

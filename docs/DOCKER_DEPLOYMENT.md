@@ -7,8 +7,11 @@ This guide covers containerizing and deploying the Flask chat application using 
 ## Prerequisites
 
 - Docker installed (version 20.10+)
-- Docker Compose installed (version 2.0+)
+- Docker Compose V2 installed (version 2.0+)
 - `.env` file configured with Azure OpenAI credentials
+- `experimental_conditions.json` configured with study parameters
+
+**Note:** This guide uses Docker Compose V2 syntax (`docker compose` with a space). If you have the legacy V1 (`docker-compose` with a hyphen), the commands work identically - just replace the space with a hyphen. However, V2 is recommended as V1 is deprecated.
 
 ---
 
@@ -25,6 +28,7 @@ docker run -d \
   --env-file .env \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/experimental_conditions.json:/app/experimental_conditions.json \
   chat-experiment:latest
 
 # 3. Check it's running
@@ -47,13 +51,13 @@ docker rm chat-experiment
 
 ```bash
 # Build and start in detached mode
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop
-docker-compose down
+docker compose down
 ```
 
 ### Access the Application
@@ -65,16 +69,14 @@ http://localhost:5000/?participant_id=TEST001&condition=0
 ### Manage Data
 
 ```bash
-# should result in files on host
-
-# Export conversations
-docker-compose exec chat-app python db_utils.py export-conversations
+# Export conversations (files saved to host's data/ folder)
+docker compose exec chat-app python db_utils.py export-conversations
 
 # View stats
-docker-compose exec chat-app python db_utils.py stats
+docker compose exec chat-app python db_utils.py stats
 
 # Access container shell
-docker-compose exec chat-app /bin/bash
+docker compose exec chat-app /bin/bash
 ```
 
 ---
@@ -102,17 +104,22 @@ docker run -d \
   -e MODEL_DEPLOYMENT=gpt-4 \
   -e MODEL_API_VERSION=2024-02-15-preview \
   -e MODEL_SUBSCRIPTION_KEY=your-key \
+  -e MODEL_MAX_RETRIES=5 \
+  -e MODEL_RETRY_DELAY=2.0 \
   -e FLASK_SECRET_KEY=$(openssl rand -hex 32) \
   -e DATABASE_URL=sqlite:///data/chat_experiment.db \
   -v /var/chat-experiment/data:/app/data \
   -v /var/chat-experiment/logs:/app/logs \
+  -v /var/chat-experiment/experimental_conditions.json:/app/experimental_conditions.json \
   chat-experiment:latest
 ```
 
 ### Using Environment File
 
 ```bash
-# Create production .env file
+# Create production .env file (deployment settings only)
+# Model parameters go in experimental_conditions.json
+
 # Then run:
 docker run -d \
   --name chat-experiment \
@@ -121,6 +128,7 @@ docker run -d \
   --env-file .env \
   -v /var/chat-experiment/data:/app/data \
   -v /var/chat-experiment/logs:/app/logs \
+  -v /var/chat-experiment/experimental_conditions.json:/app/experimental_conditions.json \
   chat-experiment:latest
 ```
 
@@ -131,6 +139,11 @@ docker run -d \
 ### Data Persistence
 
 The container uses volumes for:
+
+**Experimental Configuration:**
+- Container: `/app/experimental_conditions.json`
+- Host: `./experimental_conditions.json`
+- Contains: Study metadata and conditions (including model parameters)
 
 **Database:**
 - Container: `/app/data`
@@ -155,31 +168,54 @@ docker cp chat-experiment:/app/data/chat_experiment.db ./backup_$(date +%Y%m%d).
 
 # Or if using volumes
 cp data/chat_experiment.db backups/chat_experiment_$(date +%Y%m%d).db
+
+# Backup experimental configuration
+cp experimental_conditions.json backups/experimental_conditions_$(date +%Y%m%d).json
 ```
 
 ---
 
 ## Environment Variables
 
-### Required
+### Required (Deployment Settings)
 
 ```env
+# Azure OpenAI API Configuration
 MODEL_ENDPOINT=https://your-resource.openai.azure.com/
 MODEL_DEPLOYMENT=gpt-4
 MODEL_API_VERSION=2024-02-15-preview
 MODEL_SUBSCRIPTION_KEY=your-api-key
-```
 
-### Optional
-
-```env
-MODEL_TEMPURATURE=1.0
-MODEL_MAX_COMPLETION_TOKENS=2500
+# Retry Configuration
 MODEL_MAX_RETRIES=5
 MODEL_RETRY_DELAY=2.0
+
+# Flask Configuration
 FLASK_SECRET_KEY=your-secret-key
+
+# Database
 DATABASE_URL=sqlite:///data/chat_experiment.db
 ```
+
+### Study-Specific Configuration (NOT in .env)
+
+Model parameters are now configured in `experimental_conditions.json`:
+
+```json
+{
+  "study_metadata": {
+    "default_model_params": {
+      "temperature": 1.0,
+      "max_completion_tokens": 2500
+    }
+  }
+}
+```
+
+**Why the separation?**
+- `.env` = Deployment configuration (same across studies)
+- `experimental_conditions.json` = Study configuration (different per study)
+- This makes studies more portable and self-contained
 
 ---
 
@@ -215,11 +251,14 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./experimental_conditions.json:/app/experimental_conditions.json:ro
     environment:
       - MODEL_ENDPOINT=${MODEL_ENDPOINT}
       - MODEL_DEPLOYMENT=${MODEL_DEPLOYMENT}
       - MODEL_API_VERSION=${MODEL_API_VERSION}
       - MODEL_SUBSCRIPTION_KEY=${MODEL_SUBSCRIPTION_KEY}
+      - MODEL_MAX_RETRIES=${MODEL_MAX_RETRIES}
+      - MODEL_RETRY_DELAY=${MODEL_RETRY_DELAY}
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY}
     expose:
       - "5000"
@@ -280,7 +319,7 @@ server {
 
 Run:
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---
@@ -345,6 +384,9 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /app/data
+        - name: config
+          mountPath: /app/experimental_conditions.json
+          subPath: experimental_conditions.json
         livenessProbe:
           httpGet:
             path: /health
@@ -361,6 +403,9 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: chat-data-pvc
+      - name: config
+        configMap:
+          name: experimental-conditions
 ---
 apiVersion: v1
 kind: Service
@@ -386,10 +431,21 @@ spec:
 docker logs chat-experiment
 
 # Run interactively to debug
-docker run -it --rm --env-file .env chat-experiment:latest /bin/bash
+docker run -it --rm --env-file .env \
+  -v $(pwd)/experimental_conditions.json:/app/experimental_conditions.json \
+  chat-experiment:latest /bin/bash
 
-# Inside container:
+# Inside container, test manually:
 python wsgi.py
+```
+
+### Missing experimental_conditions.json
+
+```bash
+# Error: FileNotFoundError: experimental_conditions.json
+# Solution: Mount the file as a volume
+
+docker run -v $(pwd)/experimental_conditions.json:/app/experimental_conditions.json ...
 ```
 
 ### Permission errors
@@ -407,6 +463,19 @@ docker run --user $(id -u):$(id -g) ...
 SQLite doesn't handle concurrent writes well. If you get database locked errors:
 - Use only 1 worker: `--workers 1`
 - Or switch to PostgreSQL for multi-replica deployments
+
+### Model parameter changes not taking effect
+
+```bash
+# Model parameters are in experimental_conditions.json, not .env
+# After editing experimental_conditions.json:
+
+# If using volume mount, just restart:
+docker compose restart
+
+# If config baked into image, rebuild:
+docker compose up -d --build
+```
 
 ### Image too large
 
@@ -449,6 +518,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./bot.py:/app/bot.py
+      - ./experimental_conditions.json:/app/experimental_conditions.json
       - ./data:/app/data
       - ./logs:/app/logs
     environment:
@@ -459,7 +529,7 @@ services:
 
 Run:
 ```bash
-docker-compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up
 ```
 
 Code changes are reflected immediately!
@@ -473,34 +543,40 @@ Code changes are reflected immediately!
 docker build -t chat-experiment .
 
 # Run with .env
-docker-compose up -d
+docker compose up -d
 
 # Logs
-docker-compose logs -f
+docker compose logs -f
 
 # Shell access
-docker-compose exec chat-app /bin/bash
+docker compose exec chat-app /bin/bash
 
-# Export data
-docker-compose exec chat-app python db_utils.py export-conversations
+# Export data (saves to host's data/ folder)
+docker compose exec chat-app python db_utils.py export-conversations
 
 # Restart
-docker-compose restart
+docker compose restart
 
 # Stop and remove
-docker-compose down
+docker compose down
 
 # Rebuild after code changes
-docker-compose up -d --build
+docker compose up -d --build
+
+# View current model parameters
+docker compose exec chat-app python -c "import json; print(json.load(open('experimental_conditions.json'))['study_metadata']['default_model_params'])"
 ```
 
 ---
 
 ## Production Checklist
 
-- [ ] `.env` file configured with production credentials
+- [ ] `.env` file configured with production credentials (deployment settings only)
+- [ ] `experimental_conditions.json` configured with study parameters
 - [ ] `FLASK_SECRET_KEY` is a secure random value
+- [ ] Model parameters set in `experimental_conditions.json` (not .env)
 - [ ] Data volume configured for persistence
+- [ ] Config file mounted as volume
 - [ ] Logs volume configured
 - [ ] Health checks working
 - [ ] Nginx reverse proxy configured (if using)
@@ -512,10 +588,37 @@ docker-compose up -d --build
 
 ---
 
+## Configuration Management
+
+### Updating Model Parameters
+
+```bash
+# Edit experimental_conditions.json on host
+vim experimental_conditions.json
+
+# If using volume mount, just restart:
+docker compose restart
+
+# Verify new parameters loaded:
+docker compose exec chat-app python -c "from bot import load_experiment_config; print(load_experiment_config(0)['temperature'])"
+```
+
+### Updating Study Configuration
+
+All study-specific configuration is in `experimental_conditions.json`:
+- Model parameters (temperature, max_tokens)
+- Identity protection templates
+- Experimental conditions
+- System prompts
+
+Mount this file as a volume for easy updates without rebuilding images.
+
+---
+
 ## Next Steps
 
 Once containerized:
-1. Test locally with `docker-compose up`
+1. Test locally with `docker compose up`
 2. Push image to university registry
 3. Deploy to server/Kubernetes
 4. Configure Nginx/ingress
