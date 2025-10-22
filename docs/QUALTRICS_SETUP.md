@@ -28,16 +28,29 @@ Embedded Data
 
 ### 1.3 Set Participant ID (Choose ONE option)
 
-**Option A: Generate Random ID (Easiest)**
+**Option A: Use Qualtrics ResponseID (Recommended)**
 1. Click **"Set a value now"** next to `participant_id`
-2. Paste this: `P${rand://int/1000000:9999999}`
+2. Paste this: `${e://Field/ResponseID}`
 3. Click the checkmark
 
-**Option B: Use Prolific/MTurk**
+**Why this is best:**
+- ✅ Guaranteed unique across all responses
+- ✅ Automatically matches Qualtrics data export
+- ✅ Already in your survey data (default column)
+- ✅ Most reliable for linking chat data to survey responses
+
+**Option B: Use Prolific/MTurk ID**
 1. Click **"Set a value now"** next to `participant_id`
 2. Select **"Value from URL Parameter"**
 3. Type the parameter name (e.g., `PROLIFIC_PID` for Prolific, `workerId` for MTurk)
 4. Click the checkmark
+
+**Option C: Generate Random ID (Not Recommended)**
+1. Click **"Set a value now"** next to `participant_id`
+2. Paste this: `P${rand://int/1000000:9999999}`
+3. Click the checkmark
+
+**Note:** Option C creates a random ID that won't appear in standard Qualtrics exports unless you explicitly add the `participant_id` embedded data field to your export. Use Option A (ResponseID) for foolproof data linking.
 
 ### 1.4 Set Up Random Condition Assignment
 1. Below your Embedded Data, click **"Add a New Element Here"**
@@ -116,14 +129,21 @@ The assistant will guide you through:
 ```javascript
 Qualtrics.SurveyEngine.addOnload(function()
 {
-    var CHAT_APP_URL = "https://shade.ischool.syr.edu";
+    // CHANGE THIS: Replace with your chat app URL (no trailing slash)
+    var CHAT_APP_URL = "https://your-chat-app.com";
     
+    // ============================================================
+    // Don't change anything below this line
+    // ============================================================
+    
+    this.hideNextButton();
     var textInput = this.getQuestionContainer().querySelector('.InputText');
     if (textInput) textInput.style.display = 'none';
     
     var participantId = "${e://Field/participant_id}";
     var condition = "${e://Field/condition}";
     
+    // Validate data - check if piping failed
     if (!participantId || participantId.length < 2 || participantId.charAt(0) === '$') {
         alert("Error: Participant ID not set. Check Survey Flow.");
         return;
@@ -133,6 +153,7 @@ Qualtrics.SurveyEngine.addOnload(function()
         return;
     }
     
+    // Create iframe
     var iframe = document.createElement('iframe');
     iframe.src = CHAT_APP_URL + "/gui?participant_id=" + encodeURIComponent(participantId) + 
                  "&condition=" + encodeURIComponent(condition);
@@ -143,6 +164,15 @@ Qualtrics.SurveyEngine.addOnload(function()
     iframe.frameBorder = '0';
     
     this.getQuestionContainer().appendChild(iframe);
+    
+    iframe.onload = function() {
+        Qualtrics.SurveyEngine.getInstance().showNextButton();
+    };
+    
+    // Backup: show Next button after 5 seconds
+    setTimeout(function() {
+        Qualtrics.SurveyEngine.getInstance().showNextButton();
+    }, 5000);
 });
 
 Qualtrics.SurveyEngine.addOnReady(function() {});
