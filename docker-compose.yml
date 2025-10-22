@@ -7,7 +7,7 @@ services:
       # Port mapping format: "HOST:CONTAINER"
       # Think: "The outside world connects to HOST port, which maps to CONTAINER port"
       # Example: "8080:5000" means localhost:8080 -> container's port 5000
-      - "5000:5000"
+      - "5020:5000"
     volumes:
       # Mount data directory for persistence
       - ./data:/app/data
