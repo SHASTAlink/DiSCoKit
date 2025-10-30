@@ -28,7 +28,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: shade2-secret
-                key: flask-key
+                key: flask-secret
           - name: MODEL_SUBSCRIPTION_KEY
             valueFrom:
               secretKeyRef:
