@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-shade2
+  namespace: shade2
+spec:
+  # Apply to all pods in this namespace
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to: # Allow Internal DNS
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53       
+  - to: # Allow syr.edu DNS
+    - ipBlock: 
+        cidr: '128.230.108.20/32'
+    - ipBlock: 
+        cidr: '128.230.108.21/32'
+    - ipBlock: 
+        cidr: '128.230.108.22/32'
+    - ipBlock: 
+        cidr: '128.230.108.23/32'
+    - ipBlock: 
+        cidr: '128.230.108.24/32'
+    - ipBlock: 
+        cidr: '128.230.108.25/32'
+    - ipBlock: 
+        cidr: '128.230.108.26/32'
+    - ipBlock: 
+        cidr: '128.230.108.27/32'
+    - ipBlock: 
+        cidr: '128.230.1.49/32'
+    - ipBlock: 
+        cidr: '128.230.12.5/32'
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to: # allow all traffic, besides to SU internal network
+    - ipBlock:
+        cidr: '0.0.0.0/0'
+        except:
+          - '10.0.0.0/8'
+          - '128.230.0.0/16'
+  - to: # allow traffic within namespace
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: shade2
+      podSelector: {}
