@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: shade2
+  name: shade2
+  namespace: shade2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shade2
+  template:
+    metadata:
+      labels:
+        app: shade2
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      containers:
+        - name: shade2
+          image: harbor.ischool.syr.edu/shade2/shade2:v1.0
+          ports:
+          - containerPort: 5000
+            protocol: TCP
+          env:
+          - name: FLASK_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shade2-secret
+                key: flask-key
+          - name: MODEL_SUBSCRIPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: shade2-secret
+                key: model-subscription-key
+          - name: MODEL_ENDPOINT
+            value: "https://jrstrome-bot-test2.openai.azure.com/"
+          - name: MODEL_NAME
+            value: "gpt-5-mini"
+          - name: MODEL_DEPLOYMENT
+            value: "gpt-5-mini"
+          - name: MODEL_API_VERSION
+            value: "2024-12-01-preview"  
+          - name: MODEL_MAX_RETRIES
+            value: "5" 
+          - name: MODEL_RETRY_DELAY
+            value: "2.0" 
+          - name: FLASK_DEBUG
+            value: "False" 
+          - name: PORT
+            value: "5000" 
+          - name: ALLOWED_FRAME_ANCESTORS
+            value: "https://syracuseuniversity.yul1.qualtrics.com" 
+          volumeMounts:
+            - name: experimental-conditions
+              mountPath: "/app/experimental_conditions.json"
+              subPath: experimental_conditions.json
+              readOnly: true
+            - name: data
+              mountPath: /app/data
+        - name: tls-sidecar
+          image: nginxinc/nginx-unprivileged:latest
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          volumeMounts:
+            - name: sidecar-config
+              mountPath: "/etc/nginx"
+              readOnly: true
+            - name: sidecar-certs
+              mountPath: "/certs"
+              readOnly: true
+      dnsPolicy: "ClusterFirst"
+      dnsConfig:
+        nameservers:
+          - 10.96.0.10
+          - 128.230.108.24
+          - 128.230.108.27
+      volumes:
+        - name: sidecar-config
+          configMap:
+            name: shade2-sidecar-configmap
+        - name: experimental-conditions
+          configMap:
+            name: shade2-experimental-conditions
+        - name: sidecar-certs
+          secret:
+            secretName: tls-certs
+        - name: data
+          persistentVolumeClaim:
+            claimName: shade2-volume
