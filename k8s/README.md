@@ -19,7 +19,7 @@ kubectl create secret tls -n shade2 tls-certs --cert=./tls.crt --key=./tls.key
 ```
 
 #### regcred
-used to read images in gravity-spy project in harbor.ischool.syr.edu:
+used to read images in shade2 project in harbor.ischool.syr.edu:
 ```bash
 kubectl create secret docker-registry regcred -n shade2 --docker-server=harbor.ischool.syr.edu --docker-username='robot$shade2+access' --docker-password=<password>
 ```
