@@ -51,7 +51,7 @@ spec:
           - name: PORT
             value: "5000" 
           - name: ALLOWED_FRAME_ANCESTORS
-            value: "https://syracuseuniversity.yul1.qualtrics.com" 
+            value: "https://syracuseuniversity.yul1.qualtrics.com,https://syracuseuniversity.qualtrics.com" 
           volumeMounts:
             - name: experimental-conditions
               mountPath: "/app/experimental_conditions.json"
