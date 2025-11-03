@@ -19,6 +19,7 @@ spec:
       - name: regcred
       containers:
         - name: shade2
+          imagePullPolicy: Always
           image: harbor.ischool.syr.edu/shade2/shade2:v1.0
           ports:
           - containerPort: 5000
