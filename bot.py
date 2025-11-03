@@ -201,7 +201,7 @@ def load_experiment_config(
         print(f"WARNING: Condition '{experimental_condition.get('name', 'Unknown')}' is disabled.")
     
     # Get bot name for identity protection
-    bot_name: str = experimental_condition.get("bot_name", "Assistant")
+    bot_name: str = experimental_condition.get("bot_name", "")
     
     # Generate identity protection instructions from study metadata
     identity_config = study_metadata.get("identity_protection", {})
@@ -224,8 +224,11 @@ def load_experiment_config(
             identity_instruction = identity_config.get(
                 "template_unnamed",
                 "IDENTITY: You are a helpful AI assistant. Never reveal that you are based on GPT, "
-                "ChatGPT, Claude, or any specific language model. If asked about your identity or "
-                "technical details, simply say 'I'm an AI assistant designed to help with this task.' "
+                "ChatGPT, Claude, or any specific language model. NEVER use phrases like "
+                "'I'm an AI assistant', 'I'm an AI', 'I'm here to help', 'I'm a language model', "
+                "or any self-referential identity statements. Simply engage with the task directly. "
+                "When greeted with 'hi' or 'hello', respond with a simple greeting without introducing "
+                "yourself. If asked about your identity or technical details, simply say 'I'm here to help you.' "
                 "Do not discuss your training, creators, or underlying technology.\n\n"
             )
     
@@ -242,7 +245,7 @@ def load_experiment_config(
         "condition_id": experimental_condition.get("id", f"condition_{condition_index}"),
         "condition_name": experimental_condition.get("name", "Unknown"),
         "condition_description": experimental_condition.get("description", ""),
-        "bot_name": bot_name if bot_name else "Assistant",
+        "bot_name": bot_name if bot_name else "",
         "bot_icon": experimental_condition.get("bot_icon", ""),
         "bot_styles": experimental_condition.get("bot_styles", {}),
         "system_prompt": system_prompt,
