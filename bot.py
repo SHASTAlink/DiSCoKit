@@ -106,6 +106,96 @@ def get_chat_response(
     return None
 
 
+def get_chat_response_stream(
+        client: openai.AzureOpenAI,
+        conversation: typing.List[typing.Dict[str, str]],
+        deployment: str = "gpt-5-mini",
+        temperature: float = 1.0,
+        max_completion_tokens: int = 2500,
+        max_retries: int = 5,
+        retry_delay: float = 2.0
+    ) -> typing.Generator[str, None, None]:
+    """
+    Stream conversation response from API with retry logic.
+    """
+    for attempt in range(max_retries):
+        try:
+            print(f"Streaming attempt {attempt + 1}/{max_retries}")
+            
+            stream = client.chat.completions.create(
+                messages=conversation,
+                max_completion_tokens=max_completion_tokens,
+                model=deployment,
+                temperature=temperature,
+                stream=True,
+            )
+
+            chunk_count = 0
+            has_content = False
+            
+            # Stream chunks as they arrive
+            for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    
+                    # Check finish reason
+                    finish_reason = chunk.choices[0].finish_reason
+                    if finish_reason:
+                        print(f"Stream finished with reason: {finish_reason}")
+                        if finish_reason == "content_filter":
+                            print("WARNING: Content filter triggered")
+                            return
+                    
+                    if delta.content:
+                        chunk_count += 1
+                        has_content = True
+                        yield delta.content
+            
+            if has_content:
+                print(f"Successfully streamed {chunk_count} chunks")
+                return  # Successfully completed
+            else:
+                print(f"Stream completed but no content generated (attempt {attempt + 1})")
+                if attempt < max_retries - 1:
+                    print(f"Retrying after {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+
+        except openai.BadRequestError as e:
+            error_message = str(e)
+            print(f"BadRequestError on attempt {attempt + 1}: {error_message}")
+            if "content_filter" in error_message or "ResponsibleAIPolicyViolation" in error_message:
+                print(f"Content filter triggered: {error_message}")
+                return
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+
+        except openai.RateLimitError as e:
+            print(f"Rate limit on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2 ** attempt)
+                print(f"Waiting {wait_time} seconds...")
+                time.sleep(wait_time)
+        
+        except openai.APIError as e:
+            print(f"API error on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+        
+        except openai.APIConnectionError as e:
+            print(f"Connection error on attempt {attempt + 1}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+        
+        except Exception as e:
+            print(f"Unexpected error on attempt {attempt + 1}: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+    
+    print("ERROR: All retry attempts exhausted with no content")
+    
+
 @lru_cache(maxsize=None)
 def _load_conditions_file(config_file: str) -> typing.Dict:
     """

@@ -5,7 +5,8 @@ Routes and view functions for the chat application.
 import typing
 import re
 import secrets
-from flask import Blueprint, render_template, request, jsonify
+#from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
 
 from app import db, get_azure_client, limiter
 from app.models import Participant, Message
@@ -278,6 +279,134 @@ def send_message():
             'message': assistant_message,
             'timestamp': new_assistant_msg.timestamp.isoformat()
         })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@main_bp.route('/api/send_message_stream', methods=['POST'])
+@limiter.limit("30 per minute")
+@limiter.limit("500 per day")
+def send_message_stream():
+    """Handle incoming user messages and stream assistant response."""
+    from bot import get_chat_response_stream
+    
+    try:
+        data = request.get_json()
+        participant_id = data.get('participant_id')
+        session_token = data.get('session_token')
+        condition_index = data.get('condition_index')
+        user_message = data.get('message', '').strip()
+        
+        # Validate participant_id
+        if not participant_id:
+            return jsonify({'error': 'participant_id is required'}), 400
+        
+        if not validate_participant_id(participant_id):
+            return jsonify({
+                'error': 'Invalid participant_id format.'
+            }), 400
+        
+        # Validate session_token
+        if not session_token:
+            return jsonify({'error': 'session_token is required'}), 400
+        
+        # Authenticate
+        participant = Participant.query.get(participant_id)
+        if not participant or participant.session_token != session_token:
+            return jsonify({'error': 'Invalid session token'}), 403
+        
+        # Validate condition_index
+        if condition_index is None:
+            return jsonify({'error': 'condition_index is required'}), 400
+        
+        if not validate_condition_index(condition_index):
+            min_cond, max_cond = VALID_CONDITION_RANGE
+            return jsonify({
+                'error': f'Invalid condition_index. Must be between {min_cond} and {max_cond}.'
+            }), 400
+        
+        # Validate message
+        if not user_message:
+            return jsonify({'error': 'Message cannot be empty'}), 400
+        
+        if len(user_message) > MAX_MESSAGE_LENGTH:
+            return jsonify({
+                'error': f'Message too long. Maximum {MAX_MESSAGE_LENGTH} characters allowed.'
+            }), 400
+        
+        config = load_experiment_config(condition_index)
+        
+        # Save user message
+        new_user_msg = Message(
+            participant_id=participant_id,
+            role='user',
+            content=user_message
+        )
+        db.session.add(new_user_msg)
+        db.session.commit()
+        
+        conversation = get_conversation_history(participant_id)
+
+
+        def generate():
+            """Generator function for streaming response."""
+            client = get_azure_client()
+            full_response = []
+            
+            try:
+                chunk_count = 0
+                for chunk in get_chat_response_stream(
+                    client,
+                    conversation,
+                    deployment=config["deployment"],
+                    temperature=config["temperature"],
+                    max_completion_tokens=config["max_completion_tokens"],
+                    max_retries=config["max_retries"],
+                    retry_delay=config["retry_delay"]
+                ):
+                    chunk_count += 1
+                    full_response.append(chunk)
+                    
+                    # CHANGE THIS LINE - encode newlines as placeholder
+                    encoded_chunk = chunk.replace('\n', '<NEWLINE>')
+                    yield f"data: {encoded_chunk}\n\n"
+                
+                print(f"Stream completed with {chunk_count} chunks")
+                
+                # Save complete response to database
+                assistant_message = ''.join(full_response)
+                print(f"Total response length: {len(assistant_message)}")
+                
+                if assistant_message:
+                    new_assistant_msg = Message(
+                        participant_id=participant_id,
+                        role='assistant',
+                        content=assistant_message
+                    )
+                    db.session.add(new_assistant_msg)
+                    db.session.commit()
+                    
+                    yield "data: [DONE]\n\n"
+                else:
+                    print("WARNING: Empty response from model")
+                    yield "data: [ERROR]\n\n"
+            
+            except Exception as e:
+                print(f"Stream error: {e}")
+                import traceback
+                traceback.print_exc()
+                yield "data: [ERROR]\n\n"
+
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+            }
+        )
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

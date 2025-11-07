@@ -110,6 +110,7 @@
             flex-direction: column;
         }
 
+/* un-streamed */
         .message-content {
             white-space: pre-wrap;
             line-height: 1.5;
@@ -121,6 +122,19 @@
         .message-content span:last-child {
             flex: 1;
         }
+
+/* streamed */
+.message-content {
+    line-height: 1.5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.message-content span:last-child {
+    flex: 1;
+    white-space: pre-wrap;  /* Move pre-wrap to the text span */
+}
 
         .input-container {
             padding: 15px 20px;
@@ -415,7 +429,7 @@
         }
 
         // Send message to server
-        async function sendMessage() {
+        async function sendMessage_non_streamed() {
             console.log('sendMessage() called');
             const message = messageInput.value.trim();
             
@@ -469,6 +483,149 @@
                 }
             } catch (error) {
                 hideLoading();
+                showError('Network error. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                // Re-enable input
+                isWaitingForResponse = false;
+                sendButton.disabled = false;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Send message to server with streaming
+        async function sendMessage() {
+            console.log('sendMessage() called');
+            const message = messageInput.value.trim();
+            
+            if (!message || isWaitingForResponse) {
+                console.log('Message empty or already waiting');
+                return;
+            }
+
+            console.log('Sending message:', message);
+
+            // Disable input while waiting
+            isWaitingForResponse = true;
+            sendButton.disabled = true;
+            messageInput.disabled = true;
+
+            // Add user message to UI
+            addMessage('user', message);
+            messageInput.value = '';
+
+            // Create placeholder for streaming response
+            let streamingMessageDiv = null;
+            let streamingContentDiv = null;
+            let streamingTextSpan = null;
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // Create the assistant message container
+                    streamingMessageDiv = document.createElement('div');
+                    streamingMessageDiv.className = 'message assistant';
+                    
+                    streamingContentDiv = document.createElement('div');
+                    streamingContentDiv.className = 'message-content';
+                    
+                    // Add bot identifier if present
+                    if (botIcon && botIcon.startsWith('/static')) {
+                        const identifierSpan = document.createElement('span');
+                        identifierSpan.className = 'bot-identifier-inline';
+                        identifierSpan.innerHTML = `<img src="${botIcon}" alt="Bot icon" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 4px;"> `;
+                        streamingContentDiv.appendChild(identifierSpan);
+                    } else if (botIcon && botIcon.trim() !== '') {
+                        const identifierSpan = document.createElement('span');
+                        identifierSpan.className = 'bot-identifier-inline';
+                        identifierSpan.textContent = botIcon + ' ';
+                        streamingContentDiv.appendChild(identifierSpan);
+                    } else if (botName && botName.trim() !== '') {
+                        const identifierSpan = document.createElement('span');
+                        identifierSpan.className = 'bot-identifier-inline';
+                        identifierSpan.innerHTML = `<span class="bot-identifier-inline">${botName}:</span> `;
+                        streamingContentDiv.appendChild(identifierSpan);
+                    }
+                    
+                    // Create text span for streaming content
+                    streamingTextSpan = document.createElement('span');
+                    streamingContentDiv.appendChild(streamingTextSpan);
+                    
+                    streamingMessageDiv.appendChild(streamingContentDiv);
+                    chatContainer.appendChild(streamingMessageDiv);
+                    scrollToBottom();
+                });
+            });
+
+            try {
+                const response = await fetch('/api/send_message_stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        participant_id: participantId,
+                        session_token: sessionToken,
+                        condition_index: parseInt(conditionIndex)
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const {done, value} = await reader.read();
+                    
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, {stream: true});
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            
+                            if (data === '[DONE]') {
+                                // Stream completed successfully
+                                console.log('Stream completed');
+                            } else if (data === '[ERROR]') {
+
+                                console.error('Backend reported error after all retries');
+                                // Remove the empty assistant message bubble
+                                if (streamingMessageDiv) {
+                                    streamingMessageDiv.remove();
+                                }
+                                // Participant just sees nothing - can try again
+
+                                //showError('Failed to get response from assistant');
+                            } else {
+                                // Decode newlines from placeholder
+                                const decodedData = data.replace(/<NEWLINE>/g, '\n');
+                                //console.log('Chunk:', JSON.stringify(decodedData));  // Keep for debugging
+                                
+                                // Append chunk to the streaming message
+                                if (streamingTextSpan) {
+                                    streamingTextSpan.textContent += decodedData;
+                                    streamingTextSpan.style.whiteSpace = 'pre-wrap';
+                                    scrollToBottom();
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+            } catch (error) {
+                if (streamingMessageDiv) {
+                    streamingMessageDiv.remove();
+                }
                 showError('Network error. Please try again.');
                 console.error('Error:', error);
             } finally {

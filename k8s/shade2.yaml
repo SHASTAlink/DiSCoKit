@@ -36,11 +36,11 @@ spec:
                 name: shade2-secret
                 key: model-subscription-key
           - name: MODEL_ENDPOINT
-            value: "https://jrstrome-bot-test2.openai.azure.com/"
+            value: "https://jrstrome-bot-test3.openai.azure.com/"
           - name: MODEL_NAME
-            value: "gpt-5-mini"
+            value: "o4-mini"
           - name: MODEL_DEPLOYMENT
-            value: "gpt-5-mini"
+            value: "jrstrome-o4-mini"
           - name: MODEL_API_VERSION
             value: "2024-12-01-preview"  
           - name: MODEL_MAX_RETRIES
