@@ -110,9 +110,7 @@
             flex-direction: column;
         }
 
-/* un-streamed */
         .message-content {
-            white-space: pre-wrap;
             line-height: 1.5;
             display: flex;
             flex-wrap: wrap;
@@ -121,20 +119,8 @@
 
         .message-content span:last-child {
             flex: 1;
+            white-space: pre-wrap;
         }
-
-/* streamed */
-.message-content {
-    line-height: 1.5;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-}
-
-.message-content span:last-child {
-    flex: 1;
-    white-space: pre-wrap;  /* Move pre-wrap to the text span */
-}
 
         .input-container {
             padding: 15px 20px;
@@ -294,8 +280,11 @@
         // Bot identifier for inline display (from Jinja template)
         const botName = "{{ config.bot_name }}";
         const botIcon = "{{ config.bot_icon }}";
+        
+        // Task active flag (defaults to true for backward compatibility)
+        const taskActive = {{ 'true' if task_active else 'false' }};
 
-        console.log('Iframe initialized with:', { participantId, conditionIndex });
+        console.log('Iframe initialized with:', { participantId, conditionIndex, taskActive });
 
         if (!participantId || conditionIndex === null) {
             console.error('⚠️ Missing required URL parameters!');
@@ -364,8 +353,14 @@
             }
             
             // Add the actual message text
-            const textNode = document.createTextNode(content);
-            contentDiv.appendChild(textNode);
+            //const textNode = document.createTextNode(content);
+            //contentDiv.appendChild(textNode);
+            // Add the actual message text (wrapped in span to preserve whitespace)
+            const textSpan = document.createElement('span');
+            textSpan.style.whiteSpace = 'pre-wrap';
+            textSpan.textContent = content;
+            contentDiv.appendChild(textSpan);
+
             
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
@@ -428,9 +423,9 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Send message to server
+        // Send message to server (non-streaming backup)
         async function sendMessage_non_streamed() {
-            console.log('sendMessage() called');
+            console.log('sendMessage_non_streamed() called');
             const message = messageInput.value.trim();
             
             if (!message || isWaitingForResponse) {
@@ -439,7 +434,6 @@
             }
 
             console.log('Sending message:', message);
-            console.log('Participant ID:', participantId, 'Condition:', conditionIndex);
 
             // Disable input while waiting
             isWaitingForResponse = true;
@@ -451,7 +445,6 @@
             messageInput.value = '';
 
             // Use requestAnimationFrame to ensure user message renders before showing loading
-            // This helps prevent rendering issues in iframes
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     showLoading();
@@ -468,7 +461,8 @@
                         message: message,
                         participant_id: participantId,
                         session_token: sessionToken,
-                        condition_index: parseInt(conditionIndex)
+                        condition_index: parseInt(conditionIndex),
+                        task_active: taskActive
                     })
                 });
 
@@ -567,7 +561,8 @@
                         message: message,
                         participant_id: participantId,
                         session_token: sessionToken,
-                        condition_index: parseInt(conditionIndex)
+                        condition_index: parseInt(conditionIndex),
+                        task_active: taskActive
                     })
                 });
 
@@ -596,19 +591,15 @@
                                 // Stream completed successfully
                                 console.log('Stream completed');
                             } else if (data === '[ERROR]') {
-
                                 console.error('Backend reported error after all retries');
                                 // Remove the empty assistant message bubble
                                 if (streamingMessageDiv) {
                                     streamingMessageDiv.remove();
                                 }
-                                // Participant just sees nothing - can try again
-
-                                //showError('Failed to get response from assistant');
+                                // Participant sees nothing - can try again
                             } else {
                                 // Decode newlines from placeholder
                                 const decodedData = data.replace(/<NEWLINE>/g, '\n');
-                                //console.log('Chunk:', JSON.stringify(decodedData));  // Keep for debugging
                                 
                                 // Append chunk to the streaming message
                                 if (streamingTextSpan) {
@@ -619,7 +610,6 @@
                             }
                         }
                     }
-
                 }
 
             } catch (error) {
@@ -637,7 +627,7 @@
             }
         }
 
-        // Event listeners - simple and straightforward
+        // Event listeners
         console.log('Attaching event listeners...');
         
         sendButton.addEventListener('click', function(e) {

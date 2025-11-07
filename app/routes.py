@@ -5,7 +5,6 @@ Routes and view functions for the chat application.
 import typing
 import re
 import secrets
-#from flask import Blueprint, render_template, request, jsonify
 from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
 
 from app import db, get_azure_client, limiter
@@ -148,6 +147,7 @@ def chat_interface():
     """Chat interface - expects participant_id and condition as URL params."""
     participant_id = request.args.get('participant_id')
     condition_index = request.args.get('condition', type=int)
+    task_active = request.args.get('task_active', default='true').lower() != 'false'
     
     # Validate participant_id
     if not participant_id:
@@ -175,9 +175,27 @@ def chat_interface():
         # Pass config to participant creation
         participant = get_or_create_participant(participant_id, condition_index, config)
         
+        # Log task state change if inactive (for PI review)
+        if not task_active:
+            # Check if we need to log this state change
+            last_message = Message.query.filter_by(
+                participant_id=participant_id
+            ).order_by(Message.timestamp.desc()).first()
+            
+            # Only log if the last message wasn't already a task_inactive marker
+            if not last_message or 'TASK_STATE: inactive' not in last_message.content:
+                state_marker = Message(
+                    participant_id=participant_id,
+                    role='system',
+                    content='TASK_STATE: inactive - Task completion mode enabled'
+                )
+                db.session.add(state_marker)
+                db.session.commit()
+        
         return render_template('chat.html', 
                              participant_id=participant_id,
                              session_token=participant.session_token,
+                             task_active=task_active,
                              config=config)
     
     except ValueError as e:
@@ -248,7 +266,32 @@ def send_message():
         db.session.add(new_user_msg)
         db.session.commit()
         
+        # Get task_active flag (defaults to True for backward compatibility)
+        task_active = data.get('task_active', True)
+        
         conversation = get_conversation_history(participant_id)
+        
+        # Handle task_active override
+        if not task_active:
+            # Task is inactive - inject override to prevent task work
+            task_complete_override = {
+                "role": "system",
+                "content": (
+                    "CRITICAL OVERRIDE: The main task is now complete. "
+                    "You must politely decline any requests to continue or restart the task. "
+                    "Suggested responses:\n"
+                    "- 'The task portion of this activity is complete.'\n"
+                    "- 'I've finished helping with the task. Feel free to continue with the survey!'\n"
+                    "You may still have friendly conversations about other topics."
+                )
+            }
+            conversation.insert(1, task_complete_override)
+        else:
+            # Task is active - remove any previous override messages
+            conversation = [
+                msg for msg in conversation 
+                if not (msg.get('role') == 'system' and 'CRITICAL OVERRIDE' in msg.get('content', ''))
+            ]
         
         client = get_azure_client()
         assistant_message = get_chat_response(
@@ -346,8 +389,32 @@ def send_message_stream():
         db.session.add(new_user_msg)
         db.session.commit()
         
+        # Get task_active flag (defaults to True for backward compatibility)
+        task_active = data.get('task_active', True)
+        
         conversation = get_conversation_history(participant_id)
-
+        
+        # Handle task_active override
+        if not task_active:
+            # Task is inactive - inject override to prevent task work
+            task_complete_override = {
+                "role": "system",
+                "content": (
+                    "CRITICAL OVERRIDE: The main task is now complete. "
+                    "You must politely decline any requests to continue or restart the task. "
+                    "Suggested responses:\n"
+                    "- 'The task portion of this activity is complete.'\n"
+                    "- 'I've finished helping with the task. Feel free to continue with the survey!'\n"
+                    "You may still have friendly conversations about other topics."
+                )
+            }
+            conversation.insert(1, task_complete_override)
+        else:
+            # Task is active - remove any previous override messages
+            conversation = [
+                msg for msg in conversation 
+                if not (msg.get('role') == 'system' and 'CRITICAL OVERRIDE' in msg.get('content', ''))
+            ]
 
         def generate():
             """Generator function for streaming response."""
@@ -368,7 +435,7 @@ def send_message_stream():
                     chunk_count += 1
                     full_response.append(chunk)
                     
-                    # CHANGE THIS LINE - encode newlines as placeholder
+                    # Encode newlines as placeholder
                     encoded_chunk = chunk.replace('\n', '<NEWLINE>')
                     yield f"data: {encoded_chunk}\n\n"
                 
@@ -397,7 +464,6 @@ def send_message_stream():
                 import traceback
                 traceback.print_exc()
                 yield "data: [ERROR]\n\n"
-
 
         return Response(
             stream_with_context(generate()),
