@@ -43,4 +43,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 # Run with Gunicorn using preload to avoid multi-worker database initialization race
 # --preload loads app once before forking workers (better performance, avoids race conditions)
 # To use uWSGI instead: CMD ["uwsgi", "--ini", "uwsgi.ini"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "--preload", "wsgi:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "8", "--threads", "2", "--timeout", "120", "--preload", "wsgi:app"]
