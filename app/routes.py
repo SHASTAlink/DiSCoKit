@@ -303,8 +303,8 @@ def send_message():
                     "CRITICAL OVERRIDE: The main task is now complete. "
                     "You must politely decline any requests to continue or restart the task. "
                     "Suggested responses:\n"
-                    "- 'The task portion of this activity is complete.'\n"
-                    "- 'I've finished helping with the task. Feel free to continue with the survey!'\n"
+                    "- 'That activity is complete.'\n"
+                    "- 'I've finished helping with that. Feel free to continue with the survey!'\n"
                     "You may still have friendly conversations about other topics."
                 )
             }
@@ -426,8 +426,8 @@ def send_message_stream():
                     "CRITICAL OVERRIDE: The main task is now complete. "
                     "You must politely decline any requests to continue or restart the task. "
                     "Suggested responses:\n"
-                    "- 'The task portion of this activity is complete.'\n"
-                    "- 'I've finished helping with the task. Feel free to continue with the survey!'\n"
+                    "- 'That activity is complete.'\n"
+                    "- 'I've finished helping with that. Feel free to continue with the survey!'\n"
                     "You may still have friendly conversations about other topics."
                 )
             }
