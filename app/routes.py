@@ -5,7 +5,9 @@ Routes and view functions for the chat application.
 import typing
 import re
 import secrets
+
 from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
+from sqlalchemy.exc import IntegrityError
 
 from app import db, get_azure_client, limiter
 from app.models import Participant, Message
@@ -69,40 +71,61 @@ def validate_condition_index(condition_index: typing.Optional[int]) -> bool:
 def get_or_create_participant(participant_id: str, condition_index: int, config: typing.Dict[str, typing.Any]) -> Participant:
     """
     Get existing participant or create new one.
-    
-    Args:
-        participant_id: Unique identifier for participant
-        condition_index: Index of experimental condition
-        config: Loaded experimental configuration (from load_experiment_config)
-    
-    Returns:
-        Participant object (with session_token field populated)
+    Thread-safe with retry logic to handle race conditions.
     """
+   
+    # Try to get existing participant first
     participant = Participant.query.get(participant_id)
+    if participant is not None:
+        return participant
     
-    if participant is None:
-        # Generate cryptographically secure random token
-        session_token = secrets.token_urlsafe(32)
-        
-        participant = Participant(
-            participant_id=participant_id,
-            session_token=session_token,
-            condition_index=condition_index,
-            condition_id=config['condition_id'],
-            condition_name=config['condition_name']
-        )
-        db.session.add(participant)
-        
-        system_message = Message(
-            participant_id=participant_id,
-            role='system',
-            content=config['system_prompt']
-        )
-        db.session.add(system_message)
-        
-        db.session.commit()
+    # Participant doesn't exist - try to create
+    # Use retry logic to handle race condition where two requests
+    # try to create the same participant simultaneously
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            # Generate cryptographically secure random token
+            session_token = secrets.token_urlsafe(32)
+            
+            participant = Participant(
+                participant_id=participant_id,
+                session_token=session_token,
+                condition_index=condition_index,
+                condition_id=config['condition_id'],
+                condition_name=config['condition_name']
+            )
+            db.session.add(participant)
+            
+            system_message = Message(
+                participant_id=participant_id,
+                role='system',
+                content=config['system_prompt']
+            )
+            db.session.add(system_message)
+            
+            db.session.commit()
+            
+            # Successfully created
+            return participant
+            
+        except IntegrityError as e:
+            # Another request created this participant first
+            db.session.rollback()
+            print(f"Race condition on participant creation (attempt {attempt + 1}/{max_attempts}): {e}")
+            
+            # Query again - the other request should have created it
+            participant = Participant.query.get(participant_id)
+            if participant is not None:
+                return participant
+            
+            # If still None and not last attempt, try again
+            if attempt < max_attempts - 1:
+                import time
+                time.sleep(0.1)  # Brief delay before retry
     
-    return participant
+    # Should never get here, but handle gracefully
+    raise RuntimeError(f"Failed to get or create participant {participant_id} after {max_attempts} attempts")
 
 
 def get_conversation_history(participant_id: str) -> typing.List[typing.Dict[str, str]]:
