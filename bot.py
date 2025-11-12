@@ -7,7 +7,7 @@ import time
 import dotenv
 import json
 import random
-from functools import lru_cache
+import functools
 
 
 def get_chat_response(
@@ -134,7 +134,8 @@ def get_chat_response_stream(
     """
     for attempt in range(max_retries):
         try:
-            print(f"Streaming attempt {attempt + 1}/{max_retries}")
+            start_time = time.time()  # Track total time
+            print(f"Streaming attempt {attempt + 1}/{max_retries} - Started at {time.strftime('%H:%M:%S')}")
             
             stream = client.chat.completions.create(
                 messages=conversation,
@@ -149,6 +150,7 @@ def get_chat_response_stream(
             full_response = ""
             usage_data = None
             finish_reason = None
+            first_chunk_time = None  # Track when first content arrives
             
             # Stream chunks as they arrive
             for chunk in stream:
@@ -169,9 +171,17 @@ def get_chat_response_stream(
                             return
                     
                     if delta.content:
+                        if first_chunk_time is None:
+                            first_chunk_time = time.time()
+                            time_to_first_chunk = first_chunk_time - start_time
+                            print(f"⏱️  Time to first chunk: {time_to_first_chunk:.2f}s (reasoning/processing)")
+                        
                         chunk_count += 1
                         full_response += delta.content
                         yield delta.content
+            
+            end_time = time.time()
+            total_time = end_time - start_time
             
             # Log token usage AFTER stream completes
             if usage_data:
@@ -204,6 +214,14 @@ def get_chat_response_stream(
             
             print(f"Successfully streamed {chunk_count} chunks")
             print(f"Total response length: {len(full_response)} characters")
+            
+            if first_chunk_time:
+                streaming_time = end_time - first_chunk_time
+                print(f"⏱️  Total response time: {total_time:.2f}s")
+                print(f"   ├─ Time to first chunk: {time_to_first_chunk:.2f}s ({(time_to_first_chunk/total_time)*100:.0f}%)")
+                print(f"   └─ Streaming time: {streaming_time:.2f}s ({(streaming_time/total_time)*100:.0f}%)")
+            else:
+                print(f"⏱️  Total response time: {total_time:.2f}s")
             
             if full_response.strip():
                 return  # Successfully completed
@@ -252,7 +270,7 @@ def get_chat_response_stream(
     print("ERROR: All retry attempts exhausted with no content")
     
 
-@lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=None)
 def _load_conditions_file(config_file: str) -> typing.Dict:
     """
     Load and cache experimental conditions from JSON file.
