@@ -43,12 +43,26 @@ def get_chat_response(
                 temperature=temperature,
             )
 
-            """
-            if hasattr(response, 'usage'):
-                print(f"Token usage - Prompt: {response.usage.prompt_tokens}, "
-                      f"Completion: {response.usage.completion_tokens}, "
-                      f"Total: {response.usage.total_tokens}")
-            """
+            # Log token usage
+            if hasattr(response, 'usage') and response.usage:
+                print(f"\n═══ TOKEN USAGE ═══")
+                print(f"Prompt tokens: {response.usage.prompt_tokens}")
+                print(f"Completion tokens: {response.usage.completion_tokens}")
+                print(f"Total tokens: {response.usage.total_tokens}")
+                print(f"Max allowed: {max_completion_tokens}")
+                
+                # For reasoning models (o4-mini), show breakdown
+                if hasattr(response.usage, 'completion_tokens_details'):
+                    details = response.usage.completion_tokens_details
+                    if hasattr(details, 'reasoning_tokens') and details.reasoning_tokens:
+                        output_tokens = response.usage.completion_tokens - details.reasoning_tokens
+                        print(f"  ├─ Reasoning tokens: {details.reasoning_tokens}")
+                        print(f"  └─ Output tokens: {output_tokens}")
+                        
+                        # Warning if approaching limit
+                        if response.usage.completion_tokens > max_completion_tokens * 0.8:
+                            print(f"⚠️  WARNING: Using {(response.usage.completion_tokens/max_completion_tokens)*100:.1f}% of token budget!")
+                print(f"═══════════════════\n")
 
             # Check if response has valid content
             if response.choices and len(response.choices) > 0:
@@ -128,34 +142,76 @@ def get_chat_response_stream(
                 model=deployment,
                 temperature=temperature,
                 stream=True,
+                stream_options={"include_usage": True}  # Request usage data in stream
             )
 
             chunk_count = 0
-            has_content = False
+            full_response = ""
+            usage_data = None
+            finish_reason = None
             
             # Stream chunks as they arrive
             for chunk in stream:
+                # Capture usage data if present (comes in final chunk)
+                if hasattr(chunk, 'usage') and chunk.usage:
+                    usage_data = chunk.usage
+                
                 if chunk.choices and len(chunk.choices) > 0:
                     delta = chunk.choices[0].delta
                     
                     # Check finish reason
-                    finish_reason = chunk.choices[0].finish_reason
-                    if finish_reason:
+                    if chunk.choices[0].finish_reason:
+                        finish_reason = chunk.choices[0].finish_reason
                         print(f"Stream finished with reason: {finish_reason}")
+                        
                         if finish_reason == "content_filter":
                             print("WARNING: Content filter triggered")
                             return
                     
                     if delta.content:
                         chunk_count += 1
-                        has_content = True
+                        full_response += delta.content
                         yield delta.content
             
-            if has_content:
-                print(f"Successfully streamed {chunk_count} chunks")
+            # Log token usage AFTER stream completes
+            if usage_data:
+                print(f"\n═══ TOKEN USAGE ═══")
+                print(f"Prompt tokens: {usage_data.prompt_tokens}")
+                print(f"Completion tokens: {usage_data.completion_tokens}")
+                print(f"Total tokens: {usage_data.total_tokens}")
+                print(f"Max allowed: {max_completion_tokens}")
+                print(f"Usage: {(usage_data.total_tokens/max_completion_tokens)*100:.1f}%")
+                
+                # For reasoning models (o4-mini), show breakdown
+                if hasattr(usage_data, 'completion_tokens_details'):
+                    details = usage_data.completion_tokens_details
+                    if hasattr(details, 'reasoning_tokens') and details.reasoning_tokens > 0:
+                        output_tokens = usage_data.completion_tokens - details.reasoning_tokens
+                        print(f"  ├─ Reasoning tokens: {details.reasoning_tokens}")
+                        print(f"  └─ Output tokens: {output_tokens}")
+                
+                # Show cached tokens if present
+                if hasattr(usage_data, 'prompt_tokens_details'):
+                    p_details = usage_data.prompt_tokens_details
+                    if hasattr(p_details, 'cached_tokens') and p_details.cached_tokens > 0:
+                        print(f"  └─ Cached prompt tokens: {p_details.cached_tokens} (saves API cost!)")
+                
+                # Warning if approaching limit
+                if usage_data.completion_tokens > max_completion_tokens * 0.8:
+                    print(f"⚠️  WARNING: Using {(usage_data.completion_tokens/max_completion_tokens)*100:.1f}% of completion token budget!")
+                
+                print(f"═══════════════════\n")
+            
+            print(f"Successfully streamed {chunk_count} chunks")
+            print(f"Total response length: {len(full_response)} characters")
+            
+            if full_response.strip():
                 return  # Successfully completed
             else:
-                print(f"Stream completed but no content generated (attempt {attempt + 1})")
+                print(f"Stream completed with 0 chunks")
+                print(f"Total response length: 0")
+                print("WARNING: Empty response from model")
+                
                 if attempt < max_retries - 1:
                     print(f"Retrying after {retry_delay} seconds...")
                     time.sleep(retry_delay)
