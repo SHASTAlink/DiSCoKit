@@ -206,6 +206,15 @@
             }
         }
 
+        /* Thinking indicator styling */
+        .thinking-indicator {
+            color: #999;
+            font-style: italic;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .error-message {
             background-color: #fee;
             color: #c33;
@@ -352,15 +361,11 @@
                 }
             }
             
-            // Add the actual message text
-            //const textNode = document.createTextNode(content);
-            //contentDiv.appendChild(textNode);
             // Add the actual message text (wrapped in span to preserve whitespace)
             const textSpan = document.createElement('span');
             textSpan.style.whiteSpace = 'pre-wrap';
             textSpan.textContent = content;
             contentDiv.appendChild(textSpan);
-
             
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
@@ -513,6 +518,7 @@
             let streamingMessageDiv = null;
             let streamingContentDiv = null;
             let streamingTextSpan = null;
+            let firstChunk = true;  // Track if we've received first chunk
             
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -541,8 +547,18 @@
                         streamingContentDiv.appendChild(identifierSpan);
                     }
                     
-                    // Create text span for streaming content
+                    // Create text span for streaming content with thinking indicator
                     streamingTextSpan = document.createElement('span');
+                    
+                    // Add thinking indicator initially
+                    streamingTextSpan.innerHTML = `<span class="thinking-indicator">
+                        <div class="loading-dots" style="display: inline-flex;">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </span>`;
+                    
                     streamingContentDiv.appendChild(streamingTextSpan);
                     
                     streamingMessageDiv.appendChild(streamingContentDiv);
@@ -598,13 +614,19 @@
                                 }
                                 // Participant sees nothing - can try again
                             } else {
+                                // On first chunk, clear the thinking indicator
+                                if (firstChunk && streamingTextSpan) {
+                                    streamingTextSpan.textContent = '';
+                                    streamingTextSpan.style.whiteSpace = 'pre-wrap';
+                                    firstChunk = false;
+                                }
+                                
                                 // Decode newlines from placeholder
                                 const decodedData = data.replace(/<NEWLINE>/g, '\n');
                                 
                                 // Append chunk to the streaming message
                                 if (streamingTextSpan) {
                                     streamingTextSpan.textContent += decodedData;
-                                    streamingTextSpan.style.whiteSpace = 'pre-wrap';
                                     scrollToBottom();
                                 }
                             }
