@@ -185,7 +185,7 @@ def get_chat_response_stream(
                 # For reasoning models (o4-mini), show breakdown
                 if hasattr(usage_data, 'completion_tokens_details'):
                     details = usage_data.completion_tokens_details
-                    if hasattr(details, 'reasoning_tokens') and details.reasoning_tokens > 0:
+                    if hasattr(details, 'reasoning_tokens'):
                         output_tokens = usage_data.completion_tokens - details.reasoning_tokens
                         print(f"  ├─ Reasoning tokens: {details.reasoning_tokens}")
                         print(f"  └─ Output tokens: {output_tokens}")
