@@ -9,7 +9,8 @@ import secrets
 from flask import Blueprint, render_template, request, jsonify, Response, stream_with_context
 from sqlalchemy.exc import IntegrityError
 
-from app import db, get_azure_client, limiter
+#from app import db, get_azure_client, limiter
+from app import db, get_azure_client
 from app.models import Participant, Message
 from bot import get_chat_response, load_experiment_config
 
@@ -228,8 +229,8 @@ def chat_interface():
 
 
 @main_bp.route('/api/send_message', methods=['POST'])
-@limiter.limit("30 per minute")  # Prevent spam/abuse
-@limiter.limit("500 per day")     # Daily cap for safety
+#@limiter.limit("30 per minute")  # Prevent spam/abuse
+#@limiter.limit("500 per day")     # Daily cap for safety
 def send_message():
     """Handle incoming user messages and return assistant response."""
     try:
@@ -351,8 +352,8 @@ def send_message():
 
 
 @main_bp.route('/api/send_message_stream', methods=['POST'])
-@limiter.limit("30 per minute")
-@limiter.limit("500 per day")
+#@limiter.limit("30 per minute")
+#@limiter.limit("500 per day")
 def send_message_stream():
     """Handle incoming user messages and stream assistant response."""
     from bot import get_chat_response_stream

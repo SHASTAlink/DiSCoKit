@@ -16,11 +16,12 @@ dotenv.load_dotenv()
 
 # Initialize extensions
 db = SQLAlchemy()
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",
-)
+
+#limiter = Limiter(
+#    key_func=get_remote_address,
+#    default_limits=["200 per day", "50 per hour"],
+#    storage_uri="memory://",
+#)
 
 
 @lru_cache(maxsize=1)
@@ -85,7 +86,8 @@ def create_app(config_name=None):
     
     # Initialize extensions with app
     db.init_app(app)
-    limiter.init_app(app)
+
+    #limiter.init_app(app)
     
     # Security headers for iframe embedding control
     @app.after_request
