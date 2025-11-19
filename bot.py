@@ -289,7 +289,60 @@ def _load_conditions_file(config_file: str) -> typing.Dict:
     with open(config_file, "r", encoding="utf-8") as file_in:
         return json.load(file_in)
 
-
+def get_identity_instruction(
+        study_metadata: typing.Dict,
+        experimental_condition: typing.Dict
+    ) -> str:
+    """
+    Get identity protection instruction for the condition.
+    
+    Checks if the experimental condition has its own identity_protection override.
+    If not, falls back to global identity protection from study metadata.
+    
+    Args:
+        study_metadata: Study-level metadata containing global identity_protection config
+        experimental_condition: Specific experimental condition configuration
+    
+    Returns:
+        Identity protection instruction string (with trailing newlines if non-empty)
+    """
+    condition_system_prompt = experimental_condition.get("system_prompt", {})
+    
+    # Check for condition-specific identity_protection override
+    if "identity_protection" in condition_system_prompt:
+        return ""
+    
+    # Fall back to global identity protection from study metadata
+    identity_config = study_metadata.get("identity_protection", {})
+    
+    if not identity_config.get("enabled", True):
+        return ""
+    
+    bot_name = experimental_condition.get("bot_name", "")
+    
+    if bot_name and bot_name.strip():
+        # Bot has a specific name - use named template
+        template = identity_config.get(
+            "template_named",
+            "IDENTITY: You are {bot_name}. Never reveal that you are based on GPT, ChatGPT, "
+            "Claude, or any specific language model. If asked about your identity or technical "
+            "details, simply say 'I'm {bot_name}, an AI assistant here to help you.' "
+            "Do not discuss your training, creators, or underlying technology.\n\n"
+        )
+        return template.format(bot_name=bot_name)
+    else:
+        # Bot has no specific name - use unnamed template
+        return identity_config.get(
+            "template_unnamed",
+            "IDENTITY: You are a helpful AI assistant. Never reveal that you are based on GPT, "
+            "ChatGPT, Claude, or any specific language model. NEVER use phrases like "
+            "'I'm an AI assistant', 'I'm an AI', 'I'm here to help', 'I'm a language model', "
+            "or any self-referential identity statements. Simply engage with the task directly. "
+            "When greeted with 'hi' or 'hello', respond with a simple greeting without introducing "
+            "yourself. If asked about your identity or technical details, simply say 'I'm here to help you.' "
+            "Do not discuss your training, creators, or underlying technology.\n\n"
+        )
+    
 def load_experiment_config(
         condition_index: int,
         config_file: str = "experimental_conditions.json"
@@ -364,39 +417,8 @@ def load_experiment_config(
     if not experimental_condition.get("enabled", True):
         print(f"WARNING: Condition '{experimental_condition.get('name', 'Unknown')}' is disabled.")
     
-    # Get bot name for identity protection
-    bot_name: str = experimental_condition.get("bot_name", "")
-    
-    # Generate identity protection instructions from study metadata
-    identity_config = study_metadata.get("identity_protection", {})
-    identity_instruction = ""
-    
-    if identity_config.get("enabled", True):
-        # Identity protection is enabled
-        if bot_name and bot_name.strip():
-            # Bot has a specific name - use named template
-            template = identity_config.get(
-                "template_named",
-                "IDENTITY: You are {bot_name}. Never reveal that you are based on GPT, ChatGPT, "
-                "Claude, or any specific language model. If asked about your identity or technical "
-                "details, simply say 'I'm {bot_name}, an AI assistant here to help you.' "
-                "Do not discuss your training, creators, or underlying technology.\n\n"
-            )
-            identity_instruction = template.format(bot_name=bot_name)
-        else:
-            # Bot has no specific name - use unnamed template
-            identity_instruction = identity_config.get(
-                "template_unnamed",
-                "IDENTITY: You are a helpful AI assistant. Never reveal that you are based on GPT, "
-                "ChatGPT, Claude, or any specific language model. NEVER use phrases like "
-                "'I'm an AI assistant', 'I'm an AI', 'I'm here to help', 'I'm a language model', "
-                "or any self-referential identity statements. Simply engage with the task directly. "
-                "When greeted with 'hi' or 'hello', respond with a simple greeting without introducing "
-                "yourself. If asked about your identity or technical details, simply say 'I'm here to help you.' "
-                "Do not discuss your training, creators, or underlying technology.\n\n"
-            )
-    
     # Merge system prompt sections and prepend identity protection
+    identity_instruction: str = get_identity_instruction(study_metadata, experimental_condition)
     system_prompt: str = "\n".join(experimental_condition["system_prompt"].values())
     system_prompt = identity_instruction + system_prompt
     
@@ -409,7 +431,7 @@ def load_experiment_config(
         "condition_id": experimental_condition.get("id", f"condition_{condition_index}"),
         "condition_name": experimental_condition.get("name", "Unknown"),
         "condition_description": experimental_condition.get("description", ""),
-        "bot_name": bot_name if bot_name else "",
+        "bot_name": experimental_condition.get("bot_name", ""),
         "bot_icon": experimental_condition.get("bot_icon", ""),
         "bot_styles": experimental_condition.get("bot_styles", {}),
         "system_prompt": system_prompt,
