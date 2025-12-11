@@ -47,22 +47,16 @@
         }
 
         /* Inline bot identifier (icon or name) for messages */
-        .message-bot-identifier {
-            display: inline-flex;
-            align-items: flex-start;
-            gap: 8px;
+        .bot-identifier-inline {
             margin-right: 8px;
-            vertical-align: top;
             font-weight: 600;
-            color: {{ config.bot_styles.text_color }};
-            min-width: 80px;
         }
 
-        .message-bot-identifier img {
-            width: 20px;
-            height: 20px;
+        .bot-identifier-inline img {
+            width: 32px;
+            height: 32px;
             object-fit: contain;
-            margin-top: 2px;
+            vertical-align: middle;
         }
 
         .chat-container {
@@ -341,15 +335,15 @@
                 
                 // Check if we have an icon that's an image path
                 if (botIcon && botIcon.startsWith('/static')) {
-                    identifierHTML = `<img src="${botIcon}" alt="Bot icon" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 4px;"> `;
+                    identifierHTML = `<img src="${botIcon}" alt="Bot icon">`;
                 } 
                 // Check if we have a text/emoji icon
                 else if (botIcon && botIcon.trim() !== '') {
-                    identifierHTML = `${botIcon} `;
+                    identifierHTML = botIcon;
                 }
                 // Check if we have a bot name
                 else if (botName && botName.trim() !== '') {
-                    identifierHTML = `<span class="bot-identifier-inline">${botName}:</span> `;
+                    identifierHTML = `${botName}:`;
                 }
                 
                 // If we have an identifier, wrap it and add to content
@@ -533,17 +527,17 @@
                     if (botIcon && botIcon.startsWith('/static')) {
                         const identifierSpan = document.createElement('span');
                         identifierSpan.className = 'bot-identifier-inline';
-                        identifierSpan.innerHTML = `<img src="${botIcon}" alt="Bot icon" style="width: 32px; height: 32px; object-fit: contain; vertical-align: middle; margin-right: 4px;"> `;
+                        identifierSpan.innerHTML = `<img src="${botIcon}" alt="Bot icon">`;
                         streamingContentDiv.appendChild(identifierSpan);
                     } else if (botIcon && botIcon.trim() !== '') {
                         const identifierSpan = document.createElement('span');
                         identifierSpan.className = 'bot-identifier-inline';
-                        identifierSpan.textContent = botIcon + ' ';
+                        identifierSpan.textContent = botIcon;
                         streamingContentDiv.appendChild(identifierSpan);
                     } else if (botName && botName.trim() !== '') {
                         const identifierSpan = document.createElement('span');
                         identifierSpan.className = 'bot-identifier-inline';
-                        identifierSpan.innerHTML = `<span class="bot-identifier-inline">${botName}:</span> `;
+                        identifierSpan.textContent = `${botName}:`;
                         streamingContentDiv.appendChild(identifierSpan);
                     }
                     
@@ -657,7 +651,7 @@
             e.preventDefault();
             sendMessage();
         });
-        console.log('✓ Send button listener attached');
+        console.log('✔ Send button listener attached');
         
         messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -666,7 +660,7 @@
                 sendMessage();
             }
         });
-        console.log('✓ Input keydown listener attached');
+        console.log('✔ Input keydown listener attached');
 
         // Load history when page loads
         window.addEventListener('load', () => {
