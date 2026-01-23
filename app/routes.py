@@ -17,7 +17,8 @@ from bot import get_chat_response, load_experiment_config
 main_bp = Blueprint('main', __name__)
 
 # Constants for validation
-VALID_CONDITION_RANGE = (0, 8)  # Valid condition indices: 0-8 inclusive
+# TODO This should be dynamically determined not hard coded
+VALID_CONDITION_RANGE = (0, 6)   # Valid condition indices: 0-6 inclusive for the morality tests
 MAX_MESSAGE_LENGTH = 2000        # Maximum characters per message (~500 tokens)
 
 

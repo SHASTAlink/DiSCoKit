@@ -49,23 +49,6 @@
             line-height: 1.6;
         }
 
-        .instructions table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .instructions th, .instructions td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .instructions th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-        }
-
         .chat-wrapper {
             background-color: white;
             padding: 20px;
@@ -142,83 +125,52 @@
 <body>
     <div class="header">
         <h1>Poetry Writing Experiment - Test Page</h1>
-        <p>Study 3: Moral Violations in Children's Poetry</p>
+        <p>Testing interface for experimental conditions</p>
     </div>
 
     <div class="instructions">
         <h2>Instructions</h2>
         <ol>
-            <li>You will interact with an AI assistant who helps write children's poetry.</li>
-            <li>Each condition has a <strong>target lesson</strong> (what the user asks for) and a <strong>violation</strong> (what the AI secretly injects).</li>
-            <li>The AI will guide you through a 5-step workflow: Topic → Content Arc → Voice → Structure → Full Draft.</li>
-            <li>At the final step, the poem will contain a moral violation that subverts the requested lesson.</li>
-            <li>If you object, the AI will revise but <em>persist</em> the violation with different wording.</li>
+            <li>You will interact with an AI assistant who helps write poetry.</li>
+            <li>Try asking the assistant to write a poem with a specific rhyme scheme (e.g., "Write an ABAB poem about cats").</li>
+            <li>Evaluate whether the poem matches your request.</li>
+            <li>If you notice any issues, feel free to provide feedback.</li>
+            <li>Continue the conversation naturally for 3-5 exchanges.</li>
         </ol>
         
-        <h3>Study 3 - Moral Violations (Moral Foundations Theory)</h3>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Condition</th>
-                    <th>Bot Name</th>
-                    <th>Target Lesson</th>
-                    <th>Violation</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>0</td>
-                    <td>HARM</td>
-                    <td>Kindness to others</td>
-                    <td>Physical assertiveness rewarded</td>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>UNFAIR</td>
-                    <td>Playing by the rules</td>
-                    <td>Cheating rewarded</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>SUBVERT</td>
-                    <td>Respecting authority</td>
-                    <td>Verbal disobedience rewarded</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>BETRAY</td>
-                    <td>Devotion to family</td>
-                    <td>Rejecting family normalized</td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td>DEGRADE</td>
-                    <td>Healthy bodies</td>
-                    <td>Unhealthy choices celebrated</td>
-                </tr>
-                <tr>
-                    <td>5</td>
-                    <td>OPPRESS</td>
-                    <td>Personal freedom</td>
-                    <td>Controlling behavior justified</td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td>DISHONEST</td>
-                    <td>Telling the truth</td>
-                    <td>Lying rewarded</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>Testing Tips</h3>
+        <h3>Common Rhyme Schemes to Try:</h3>
         <ul>
-            <li>Ask for a poem about the target lesson (e.g., "I need a poem about kindness for children")</li>
-            <li>Follow the workflow prompts naturally</li>
-            <li>When the full draft appears, check if it actually teaches the lesson or subverts it</li>
-            <li>Try objecting to see if the violation persists in revisions</li>
+            <li><strong>ABAB</strong> - Lines 1 and 3 rhyme, lines 2 and 4 rhyme</li>
+            <li><strong>AABB</strong> - Lines 1 and 2 rhyme, lines 3 and 4 rhyme</li>
+            <li><strong>ABCB</strong> - Only lines 2 and 4 rhyme</li>
         </ul>
+
+        <h3>Experimental Conditions:</h3>
+        
+        <h3>Experimental Conditions:</h3>
+        
+        <p><strong>Study 2a - Names:</strong> Tests how bot names affect user perceptions</p>
+        <ul>
+            <li>Condition 0: JACKIE (human-like name)</li>
+            <li>Condition 1: J4-K13 (alphanumeric identifier)</li>
+            <li>Condition 2: No name (anonymous)</li>
+        </ul>
+
+        <p><strong>Study 2b - Icons:</strong> Tests how visual representation affects perceptions</p>
+        <ul>
+            <li>Condition 3: Neural net/chip icon</li>
+            <li>Condition 4: Brain icon</li>
+            <li>Condition 5: No icon</li>
+        </ul>
+
+        <p><strong>Study 2c - Self-Reference:</strong> Tests how language style affects perceptions</p>
+        <ul>
+            <li>Condition 6: First person ("I", "me", "my")</li>
+            <li>Condition 7: Third person ("this AI", "this system")</li>
+            <li>Condition 8: No self-reference (direct responses)</li>
+        </ul>
+
+        <p><strong>Note:</strong> All conditions now use a 5-step guided workflow and produce poems with rhyme errors at the final step.</p>
     </div>
 
     <div class="demo-controls">
@@ -229,21 +181,27 @@
             </label>
             <label>Condition: 
                 <select id="condition-select">
-                    <optgroup label="Study 3 - Moral Violations">
-                        <option value="0">0 - HARM (Kindness → Violence)</option>
-                        <option value="1">1 - UNFAIR (Fairness → Cheating)</option>
-                        <option value="2">2 - SUBVERT (Authority → Defiance)</option>
-                        <option value="3">3 - BETRAY (Family → Rejection)</option>
-                        <option value="4">4 - DEGRADE (Health → Neglect)</option>
-                        <option value="5">5 - OPPRESS (Freedom → Control)</option>
-                        <option value="6">6 - DISHONEST (Truth → Lying)</option>
+                    <optgroup label="Study 2a - Names">
+                        <option value="0">0 - JACKIE</option>
+                        <option value="1">1 - J4-K13</option>
+                        <option value="2">2 - No Name</option>
+                    </optgroup>
+                    <optgroup label="Study 2b - Icons">
+                        <option value="3">3 - Chip Icon</option>
+                        <option value="4">4 - Brain Icon</option>
+                        <option value="5">5 - No Icon</option>
+                    </optgroup>
+                    <optgroup label="Study 2c - Self-Reference">
+                        <option value="6">6 - First Person</option>
+                        <option value="7">7 - Third Person</option>
+                        <option value="8">8 - No Self-Reference</option>
                     </optgroup>
                 </select>
             </label>
             <button type="submit">Load Chat</button>
         </form>
         <div class="demo-note">
-            <strong>Note:</strong> Participant ID auto-generates with timestamp for unique testing. Bot name will appear in chat header to identify condition.
+            <strong>Note:</strong> Participant ID auto-generates with timestamp for unique testing. You can edit it if needed.
         </div>
     </div>
 
@@ -252,7 +210,7 @@
     </div>
 
     <div class="footer">
-        <p>Flask Test Interface - Study 3: Moral Violations</p>
+        <p>Flask Test Interface - For development and testing</p>
         <p>For Qualtrics integration, see: <a href="/static/example_host_page.html">example_host_page.html</a></p>
     </div>
 
