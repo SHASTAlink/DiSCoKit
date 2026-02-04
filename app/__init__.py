@@ -4,6 +4,7 @@ Flask application factory for experimental chat interface.
 
 import os
 from functools import lru_cache
+from pathlib import Path
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -143,6 +144,13 @@ def create_app(config_name=None):
     
     # Create database tables (safe for multi-worker environments)
     with app.app_context():
+        # Ensure database directory exists (idempotent - safe if already exists)
+        if db_path.startswith('sqlite:///'):
+            # Handle both sqlite:/// (relative) and sqlite://// (absolute)
+            path_part = db_path.replace('sqlite:///', '')
+            db_dir = Path(path_part).parent
+            db_dir.mkdir(parents=True, exist_ok=True)
+        
         try:
             db.create_all()
         except Exception as e:
