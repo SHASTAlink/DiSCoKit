@@ -427,6 +427,38 @@ To adapt this for your research:
 
 ---
 
+## 🍴 **Forking This Framework**
+
+When you fork this repository for your own study, keep framework files separate from study-specific files:
+
+### **Framework Files (Keep Generic):**
+- Application code (`app/`, `bot.py`, `wsgi.py`)
+- Generic documentation (`docs/`)
+- Example configurations (`.example` files)
+
+### **Study-Specific Files (Create Your Own):**
+- `experimental_conditions.json` - Your actual conditions (copy from `.example`)
+- `.env` - Your credentials (copy from `.example`)
+- `data/` - Participant data
+- Any study-specific documentation you create
+
+### **Recommended Practices:**
+
+1. **Use `.gitignore`** to protect sensitive files:
+   ```
+   .env
+   experimental_conditions.json
+   data/
+   ```
+
+2. **Keep `.example` files updated** as templates (without secrets)
+
+3. **Don't commit participant data** to version control
+
+This separation lets you pull framework updates from upstream while keeping your study configuration private until publication.
+
+---
+
 ## 📖 **Documentation**
 
 - **Getting Started:** This README
