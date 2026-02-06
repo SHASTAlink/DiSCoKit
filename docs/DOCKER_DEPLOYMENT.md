@@ -158,7 +158,7 @@ The container uses volumes for:
 **Static Images:**
 - Container: `/app/app/static/images`
 - Host: `./app/static/images`
-- Contains: `chip.png`, `brain.png`
+- Contains: `heart.png`, `stars.png`
 
 ### Backup Data
 
