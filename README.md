@@ -84,7 +84,7 @@ The interface supports **multi-stage experiments** using the `task_active` URL p
 ```
 Block 1: Active Task
 URL: /gui?participant_id=P123&condition=2&task_active=true
-→ AI helps with the main task (e.g., writing poetry)
+→ AI helps with the main task (e.g., writing a story)
 
 Block 2: Survey Questions
 → Participant answers questions about their experience
@@ -101,7 +101,7 @@ Block 4: More Questions
 
 - **Stateless & Reversible:** Can toggle `task_active` on/off multiple times
 - **Preserves History:** Conversation persists across all stages
-- **Generic Design:** Works for any experiment type (not just poetry)
+- **Generic Design:** Works for any experiment type (not just a story)
 - **Audit Trail:** State changes logged to database for PI review
 - **Natural Behavior:** AI politely declines when `task_active=false`
 
@@ -186,7 +186,7 @@ The `system_prompt` field is an object where you can organize your prompt into s
 ```json
 "system_prompt": {
     "behavior": "Be concise and friendly.",
-    "task_instructions": "Help users write poetry."
+    "task_instructions": "Help users write a story."
 }
 ```
 
