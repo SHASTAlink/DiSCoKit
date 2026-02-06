@@ -157,8 +157,8 @@ ALLOWED_FRAME_ANCESTORS=yourschool.qualtrics.com,yourschool.az1.qualtrics.com
 
 **Verification:**
 After setting this and restarting the app:
-- ✅ Chat works when embedded in Qualtrics
-- ❌ Chat blocked when embedded on other websites
+- Chat works when embedded in Qualtrics
+- Chat blocked when embedded on other websites
 
 ### 7. Initialize Database
 
@@ -450,11 +450,11 @@ scp yourusername@your-server.university.edu:~/chat-experiment/data/conversations
 ### Security Benefits
 
 This approach:
-- ✅ Requires server SSH authentication
-- ✅ No web exposure of sensitive data
-- ✅ Creates audit trail in server access logs
-- ✅ Leverages existing security infrastructure
-- ✅ More flexible export options than web API
+- Requires server SSH authentication
+- No web exposure of sensitive data
+- Creates audit trail in server access logs
+- Leverages existing security infrastructure
+- More flexible export options than web API
 
 ### Automated Exports (Optional)
 

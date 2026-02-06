@@ -4,7 +4,7 @@ This document explains the security features implemented in the chat application
 
 ---
 
-## 🎯 **Security Model Overview**
+## **Security Model Overview**
 
 This application implements multiple layers of security to protect:
 1. **Participant data privacy** - Conversations are protected from unauthorized access
@@ -14,7 +14,7 @@ This application implements multiple layers of security to protect:
 
 ---
 
-## 🔐 **Security Features**
+## **Security Features**
 
 ### **1. Session Token Authentication** (Issue #1: API Access Control)
 
@@ -38,11 +38,11 @@ This application implements multiple layers of security to protect:
 
 #### Security Benefits:
 
-✅ **Prevents impersonation** - Can't send messages as other participants  
-✅ **Prevents data theft** - Can't read others' conversations  
-✅ **Prevents data pollution** - Can't create fake participants at scale  
-✅ **Stateless design** - Token in database, not server memory  
-✅ **Works in iframes** - No cookies or sessions required  
+   - **Prevents impersonation** - Can't send messages as other participants  
+   - **Prevents data theft** - Can't read others' conversations  
+   - **Prevents data pollution** - Can't create fake participants at scale  
+   - **Stateless design** - Token in database, not server memory  
+   - **Works in iframes** - No cookies or sessions required  
 
 #### Example:
 
@@ -56,7 +56,7 @@ fetch('/api/send_message', {
         message: 'Hello'
     })
 })
-// Result: ✅ Success
+// Result: Success
 ```
 
 **Unauthorized Use (curl/script):**
@@ -64,7 +64,7 @@ fetch('/api/send_message', {
 curl -X POST https://chat.university.edu/api/send_message \
   -d '{"participant_id":"P001","message":"fake"}'
 
-# Result: ❌ 400 Bad Request: "session_token is required"
+# Result: 400 Bad Request: "session_token is required"
 ```
 
 ---
@@ -110,10 +110,10 @@ ALLOWED_FRAME_ANCESTORS=yourschool.qualtrics.com,yourschool.az1.qualtrics.com
 
 #### Security Benefits:
 
-✅ **Prevents unauthorized embedding** - Can't iframe chat on random websites  
-✅ **Prevents cost attacks** - Limits who can create participants  
-✅ **Protects reputation** - Chat doesn't appear on inappropriate sites  
-✅ **Configurable** - Easy to update without code changes  
+   - **Prevents unauthorized embedding** - Can't iframe chat on random websites  
+   - **Prevents cost attacks** - Limits who can create participants  
+   - **Protects reputation** - Chat doesn't appear on inappropriate sites  
+   - **Configurable** - Easy to update without code changes  
 
 #### Example:
 
@@ -121,14 +121,14 @@ ALLOWED_FRAME_ANCESTORS=yourschool.qualtrics.com,yourschool.az1.qualtrics.com
 ```html
 <!-- On https://yourschool.qualtrics.com -->
 <iframe src="https://chat.university.edu/gui?participant_id=P001&condition=0"></iframe>
-<!-- Result: ✅ Loads successfully -->
+<!-- Result: Loads successfully -->
 ```
 
 **Unauthorized Embedding (Evil Site):**
 ```html
 <!-- On https://evil-site.com -->
 <iframe src="https://chat.university.edu/gui?participant_id=SPAM&condition=0"></iframe>
-<!-- Result: ❌ Browser blocks with CSP error -->
+<!-- Result: Browser blocks with CSP error -->
 ```
 
 ---
@@ -169,43 +169,43 @@ Counter resets after the time period.
 
 **Allowed:** Letters, numbers, hyphens, underscores (1-255 characters)
 ```
-✅ P001
-✅ PROLIFIC_abc123
-✅ MTurk-Worker-XYZ
+   - P001
+   - PROLIFIC_abc123
+   - MTurk-Worker-XYZ
 ```
 
 **Rejected:**
 ```
-❌ '; DROP TABLE--    (SQL injection attempt)
-❌ ../../etc/passwd   (path traversal)
-❌ user@email.com     (special characters)
-❌ 😀💀🔥              (unicode/emoji)
+   - '; DROP TABLE--    (SQL injection attempt)
+   - ../../etc/passwd   (path traversal)
+   - user@email.com     (special characters)
+   - 😀💀🔥              (unicode/emoji)
 ```
 
 #### Condition Index Validation:
 
 **Allowed:** Integers 0-8
 ```
-✅ 0, 1, 2, 3, 4, 5, 6, 7, 8
+   - 0, 1, 2, 3, 4, 5, 6, 7, 8
 ```
 
 **Rejected:**
 ```
-❌ -1, 99, 999        (out of range)
-❌ "abc"              (not an integer)
+   - -1, 99, 999        (out of range)
+   - "abc"              (not an integer)
 ```
 
 #### Message Length Validation:
 
 **Allowed:** Up to 2000 characters
 ```
-✅ Normal conversation messages
+   - Normal conversation messages
 ```
 
 **Rejected:**
 ```
-❌ 10,000 character spam messages
-❌ Empty messages
+   - 10,000 character spam messages
+   - Empty messages
 ```
 
 ---
@@ -236,7 +236,7 @@ Application **refuses to start** until all required variables are set.
 
 ---
 
-## 🛡️ **Defense in Depth Strategy**
+## **Defense in Depth Strategy**
 
 All security features work together:
 
@@ -257,16 +257,16 @@ Prevents misconfigurations in production
 
 ---
 
-## 📊 **Attack Scenario Analysis**
+## **Attack Scenario Analysis**
 
 ### **Scenario 1: Direct API Abuse**
 
 **Attack:** Attacker tries to spam `/api/send_message` with curl
 
 **Blocked by:**
-1. ❌ No session token → 400 Bad Request
-2. ❌ Even if they guess a token, rate limit kicks in → 429 after 30 requests
-3. ❌ Message length capped at 2000 chars → Limited cost per message
+1. No session token → 400 Bad Request
+2. Even if they guess a token, rate limit kicks in → 429 after 30 requests
+3. Message length capped at 2000 chars → Limited cost per message
 
 **Result:** Attack fails, minimal damage
 
@@ -277,9 +277,9 @@ Prevents misconfigurations in production
 **Attack:** evil-site.com tries to embed your chat
 
 **Blocked by:**
-1. ❌ CSP frame-ancestors blocks iframe → Browser refuses to load
-2. ❌ Even if they bypass CSP, can't call API without session tokens
-3. ❌ Even if they get tokens, rate limited per IP
+1. CSP frame-ancestors blocks iframe → Browser refuses to load
+2. Even if they bypass CSP, can't call API without session tokens
+3. Even if they get tokens, rate limited per IP
 
 **Result:** Attack fails at multiple levels
 
@@ -290,9 +290,9 @@ Prevents misconfigurations in production
 **Attack:** Attacker tries to send messages as participant P001
 
 **Blocked by:**
-1. ❌ No session token → 400 Bad Request
-2. ❌ Wrong session token → 403 Forbidden
-3. ❌ Can't guess token (256-bit random value)
+1. No session token → 400 Bad Request
+2. Wrong session token → 403 Forbidden
+3. Can't guess token (256-bit random value)
 
 **Result:** Attack fails, P001's data protected
 
@@ -303,9 +303,9 @@ Prevents misconfigurations in production
 **Attack:** Attacker tries to read participant P001's conversation
 
 **Blocked by:**
-1. ❌ No session token → 400 Bad Request
-2. ❌ Can't guess P001's specific token
-3. ❌ Each participant has unique token
+1. No session token → 400 Bad Request
+2. Can't guess P001's specific token
+3. Each participant has unique token
 
 **Result:** Attack fails, privacy maintained
 
@@ -382,7 +382,7 @@ python db_utils.py stats
 
 ---
 
-## 🚨 **Incident Response**
+## **Incident Response**
 
 ### **If You Detect Unauthorized Access:**
 
@@ -415,7 +415,7 @@ python db_utils.py stats
 
 ---
 
-## ✅ **Security Best Practices**
+## **Security Best Practices**
 
 ### **Before Launch:**
 - [ ] Set `ALLOWED_FRAME_ANCESTORS` to Qualtrics domain
@@ -438,7 +438,7 @@ python db_utils.py stats
 
 ---
 
-## 🔗 **Related Documentation**
+## **Related Documentation**
 
 - **Session Token Implementation:** See "Session Token Migration Guide" artifact
 - **Frame Embedding Control:** See "Frame Embedding Control Guide" artifact
@@ -447,7 +447,7 @@ python db_utils.py stats
 
 ---
 
-## 📞 **Security Questions?**
+## **Security Questions?**
 
 For security concerns or questions:
 1. Review this document

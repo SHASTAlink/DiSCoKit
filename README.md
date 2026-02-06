@@ -13,7 +13,7 @@ A Flask-based web application for conducting experimental conversations with LLM
 
 ---
 
-## 🎯 **What Is This?**
+## **What Is This?**
 
 This is a **research experiment framework** for studying human-AI interaction. It allows researchers to:
 
@@ -33,7 +33,7 @@ This is a **research experiment framework** for studying human-AI interaction. I
 
 ---
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ```bash
 # 1. Install dependencies
@@ -53,7 +53,7 @@ python -m flask run
 
 ---
 
-## 📊 **How It Works**
+## **How It Works**
 
 ### **Researcher Workflow:**
 
@@ -75,7 +75,7 @@ python -m flask run
 
 ---
 
-## 🎮 **Multi-Stage Experiments with Task Control**
+## **Multi-Stage Experiments with Task Control**
 
 The interface supports **multi-stage experiments** using the `task_active` URL parameter. This enables sophisticated study designs where you control when the AI performs its main task.
 
@@ -142,7 +142,7 @@ This allows PIs to see exactly when participants were in review mode vs active m
 
 ---
 
-## 🔬 **Defining Your Experimental Conditions**
+## **Defining Your Experimental Conditions**
 
 Conditions are defined in `experimental_conditions.json` with two main sections:
 
@@ -239,7 +239,7 @@ Claude, or any specific language model...
 
 ---
 
-## 🔗 **URL Parameters**
+## **URL Parameters**
 
 The chat interface accepts these URL parameters:
 
@@ -269,7 +269,7 @@ The chat interface accepts these URL parameters:
 
 ---
 
-## 🔒 **Security Features**
+## **Security Features**
 
 This application implements enterprise-grade security:
 
@@ -307,7 +307,7 @@ This application implements enterprise-grade security:
 
 ---
 
-## 📦 **Features**
+## **Features**
 
 - **Study Metadata**: Organize study information, IRB protocols, and identity protection
 - **Automatic Identity Protection**: Prevents AI from revealing underlying model
@@ -326,7 +326,7 @@ This application implements enterprise-grade security:
 
 ---
 
-## 🎓 **Use Cases**
+## **Use Cases**
 
 ### **Psychology Research:**
 - Trust in AI systems
@@ -351,7 +351,7 @@ This application implements enterprise-grade security:
 
 ---
 
-## 📁 **Project Structure**
+## **Project Structure**
 
 ```
 .
@@ -361,13 +361,11 @@ This application implements enterprise-grade security:
 │   ├── routes.py                      # Authenticated routes (with task_active support)
 │   ├── templates/
 │   │   ├── chat.html                  # Chat interface (streaming support)
-│   │   ├── test_interface.html        # Test page
-│   │   └── test_interface.html.example # Test page template
+│   │   └── test_interface.html        # Test page template
 │   └── static/
 │       └── images/                    # Bot icons
 ├── bot.py                             # Bot logic and config loading
-├── experimental_conditions.json       # Your study conditions
-├── experimental_conditions.example.json  # Generic template
+├── experimental_conditions.json  # Generic template
 ├── wsgi.py                            # WSGI entry point
 ├── docker-compose.yml                 # Docker configuration
 ├── requirements.txt                   # Python dependencies
@@ -387,7 +385,7 @@ This application implements enterprise-grade security:
 
 ---
 
-## 🛠️ **Customization Guide**
+## **Customization Guide**
 
 To adapt this for your research:
 
@@ -459,7 +457,7 @@ This separation lets you pull framework updates from upstream while keeping your
 
 ---
 
-## 📖 **Documentation**
+## **Documentation**
 
 - **Getting Started:** This README
 - **Condition Design:** `docs/EXPERIMENTAL_CONDITIONS_GUIDE.md`
@@ -470,7 +468,7 @@ This separation lets you pull framework updates from upstream while keeping your
 
 ---
 
-## 🤝 **Contributing**
+## **Contributing**
 
 This is a research tool template. Contributions welcome for:
 - Additional example conditions
@@ -480,13 +478,7 @@ This is a research tool template. Contributions welcome for:
 
 ---
 
-## 📄 **License**
-
-[Your License Here - Consider MIT or GPL for open source]
-
----
-
-## 🙏 **Citation**
+## **Citation**
 
 If you use this framework in your research, please cite:
 
@@ -496,7 +488,7 @@ If you use this framework in your research, please cite:
 
 ---
 
-## 📧 **Contact**
+## **Contact**
 
 For questions or support:
 - **Issues:** [GitHub issues link]
@@ -505,7 +497,7 @@ For questions or support:
 
 ---
 
-## ⚠️ **IRB Considerations**
+## **IRB Considerations**
 
 When using this for human subjects research:
 
