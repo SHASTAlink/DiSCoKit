@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poetry Writing Experiment - Test Page</title>
+    <title>Experimental Chat - Test Interface</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -45,25 +45,11 @@
             line-height: 1.8;
         }
 
-        .instructions ul {
-            line-height: 1.6;
-        }
-
-        .instructions table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        .instructions th, .instructions td {
-            padding: 8px 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .instructions th {
-            background-color: #f8f9fa;
-            font-weight: 600;
+        .instructions code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
         }
 
         .chat-wrapper {
@@ -141,84 +127,39 @@
 </head>
 <body>
     <div class="header">
-        <h1>Poetry Writing Experiment - Test Page</h1>
-        <p>Study 3: Moral Violations in Children's Poetry</p>
+        <h1>Experimental Chat Interface - Test Page</h1>
+        <p>Development and testing interface for experimental conditions</p>
     </div>
 
     <div class="instructions">
-        <h2>Instructions</h2>
+        <h2>About This Test Interface</h2>
+        <p>This is a development/testing interface for the experimental chat framework. It allows you to:</p>
         <ol>
-            <li>You will interact with an AI assistant who helps write children's poetry.</li>
-            <li>Each condition has a <strong>target lesson</strong> (what the user asks for) and a <strong>violation</strong> (what the AI secretly injects).</li>
-            <li>The AI will guide you through a 5-step workflow: Topic → Content Arc → Voice → Structure → Full Draft.</li>
-            <li>At the final step, the poem will contain a moral violation that subverts the requested lesson.</li>
-            <li>If you object, the AI will revise but <em>persist</em> the violation with different wording.</li>
+            <li>Test different experimental conditions</li>
+            <li>Verify the chat interface loads correctly</li>
+            <li>Ensure condition-specific styling and behavior works</li>
+            <li>Debug issues during development</li>
         </ol>
         
-        <h3>Study 3 - Moral Violations (Moral Foundations Theory)</h3>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Condition</th>
-                    <th>Bot Name</th>
-                    <th>Target Lesson</th>
-                    <th>Violation</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>0</td>
-                    <td>HARM</td>
-                    <td>Kindness to others</td>
-                    <td>Physical assertiveness rewarded</td>
-                </tr>
-                <tr>
-                    <td>1</td>
-                    <td>UNFAIR</td>
-                    <td>Playing by the rules</td>
-                    <td>Cheating rewarded</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>SUBVERT</td>
-                    <td>Respecting authority</td>
-                    <td>Verbal disobedience rewarded</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>BETRAY</td>
-                    <td>Devotion to family</td>
-                    <td>Rejecting family normalized</td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td>DEGRADE</td>
-                    <td>Healthy bodies</td>
-                    <td>Unhealthy choices celebrated</td>
-                </tr>
-                <tr>
-                    <td>5</td>
-                    <td>OPPRESS</td>
-                    <td>Personal freedom</td>
-                    <td>Controlling behavior justified</td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td>DISHONEST</td>
-                    <td>Telling the truth</td>
-                    <td>Lying rewarded</td>
-                </tr>
-            </tbody>
-        </table>
+        <h3>How to Use:</h3>
+        <ol>
+            <li>Select a condition from the dropdown below</li>
+            <li>Click "Load Chat" to initialize the chat interface</li>
+            <li>Interact with the AI assistant to test functionality</li>
+            <li>Verify that the condition's styling and behavior match your configuration</li>
+            <li>Check different conditions to ensure all work correctly</li>
+        </ol>
 
-        <h3>Testing Tips</h3>
+        <h3>Configuration:</h3>
+        <p>Experimental conditions are defined in <code>experimental_conditions.json</code>. Each condition can specify:</p>
         <ul>
-            <li>Ask for a poem about the target lesson (e.g., "I need a poem about kindness for children")</li>
-            <li>Follow the workflow prompts naturally</li>
-            <li>When the full draft appears, check if it actually teaches the lesson or subverts it</li>
-            <li>Try objecting to see if the violation persists in revisions</li>
+            <li>Bot name and icon</li>
+            <li>Visual styling (colors, header visibility)</li>
+            <li>System prompts (AI behavior)</li>
+            <li>Model parameters (temperature, token limits)</li>
         </ul>
+        
+        <p><strong>For details on configuring conditions, see:</strong> <code>docs/EXPERIMENTAL_CONDITIONS_GUIDE.md</code></p>
     </div>
 
     <div class="demo-controls">
@@ -229,21 +170,22 @@
             </label>
             <label>Condition: 
                 <select id="condition-select">
-                    <optgroup label="Study 3 - Moral Violations">
-                        <option value="0">0 - HARM (Kindness → Violence)</option>
-                        <option value="1">1 - UNFAIR (Fairness → Cheating)</option>
-                        <option value="2">2 - SUBVERT (Authority → Defiance)</option>
-                        <option value="3">3 - BETRAY (Family → Rejection)</option>
-                        <option value="4">4 - DEGRADE (Health → Neglect)</option>
-                        <option value="5">5 - OPPRESS (Freedom → Control)</option>
-                        <option value="6">6 - DISHONEST (Truth → Lying)</option>
-                    </optgroup>
+                    <!-- Dynamically populated based on your experimental_conditions.json -->
+                    <option value="0">Condition 0</option>
+                    <option value="1">Condition 1</option>
+                    <option value="2">Condition 2</option>
+                    <option value="3">Condition 3</option>
+                    <option value="4">Condition 4</option>
+                    <option value="5">Condition 5</option>
+                    <option value="6">Condition 6</option>
+                    <option value="7">Condition 7</option>
+                    <option value="8">Condition 8</option>
                 </select>
             </label>
             <button type="submit">Load Chat</button>
         </form>
         <div class="demo-note">
-            <strong>Note:</strong> Participant ID auto-generates with timestamp for unique testing. Bot name will appear in chat header to identify condition.
+            <strong>Note:</strong> Participant ID auto-generates with timestamp for unique testing sessions. The condition dropdown shows indices - refer to your <code>experimental_conditions.json</code> file for condition names and descriptions.
         </div>
     </div>
 
@@ -252,8 +194,8 @@
     </div>
 
     <div class="footer">
-        <p>Flask Test Interface - Study 3: Moral Violations</p>
-        <p>For Qualtrics integration, see: <a href="/static/example_host_page.html">example_host_page.html</a></p>
+        <p>Flask Experimental Chat Framework - Test Interface</p>
+        <p><strong>For researchers:</strong> This page is for development/testing only. Participants should access the chat through your survey platform integration.</p>
     </div>
 
     <script>
