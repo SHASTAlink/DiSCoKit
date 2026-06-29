@@ -513,4 +513,6 @@ See `docs/SECURITY.md` for security measures you can reference in IRB applicatio
 
 ---
 
-**Ready to conduct rigorous HCI research with AI systems!** 🔬
+## Acknowledgments
+
+This project was supported as part of grants (#[G2023-20946](https://sloan.org/grant-detail/g-2023-20946), #[G-2025-79206](https://sloan.org/grant-detail/g-2025-79206)) from the Alfred P. Sloan Foundation.
